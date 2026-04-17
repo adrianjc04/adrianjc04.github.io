@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El Árbitro Obligado</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --gold:#c9a84c;
+  --gold-bright:#e8c96a;
+  --gold-dim:rgba(201,168,76,0.12);
+  --blood:#8b1a1a;
+  --ink:#06060a;
+  --parchment:#b8a88a;
+  --ash:#2a2a2e;
+  --mist:#1a1a20;
+}
+
+html,body{height:100%;overflow-x:hidden}
+
+body{
+  font-family:'Crimson Text',serif;
+  background:var(--ink);
+  color:var(--parchment);
+  min-height:100vh;
+  position:relative;
+}
+
+/* ── CANVAS ── */
+#cvs{position:fixed;inset:0;pointer-events:none;z-index:0}
+
+/* ── VIGNETTE ── */
+#vignette{
+  position:fixed;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(ellipse 80% 80% at 50% 50%,transparent 40%,rgba(0,0,0,.9)100%);
+}
+
+/* ── WRAPPER ── */
+#app{
+  position:relative;z-index:2;
+  max-width:1020px;margin:0 auto;
+  padding:0 16px 60px;
+}
+
+/* ══════════════ HEADER ══════════════ */
+header{
+  text-align:center;padding:48px 0 32px;
+  position:relative;
+}
+.crown-sigil{
+  font-size:2em;margin-bottom:12px;display:block;
+  color:var(--gold);opacity:.2;
+  text-shadow:0 0 30px var(--gold);
+  animation:sigil-pulse 5s ease-in-out infinite;
+}
+@keyframes sigil-pulse{0%,100%{opacity:.15;transform:scale(1)}50%{opacity:.35;transform:scale(1.03)}}
+
+h1{
+  font-family:'Cinzel',serif;font-weight:900;
+  font-size:clamp(1.8em,5vw,2.8em);
+  letter-spacing:8px;text-transform:uppercase;
+  color:transparent;
+  background:linear-gradient(180deg,var(--gold-bright) 0%,var(--gold) 50%,#8a6a20 100%);
+  -webkit-background-clip:text;background-clip:text;
+  text-shadow:none;
+  filter:drop-shadow(0 0 30px rgba(201,168,76,.4));
+  animation:title-shimmer 6s ease-in-out infinite;
+}
+@keyframes title-shimmer{0%,100%{filter:drop-shadow(0 0 20px rgba(201,168,76,.3))}50%{filter:drop-shadow(0 0 50px rgba(201,168,76,.6))}}
+
+.header-rule{
+  display:flex;align-items:center;justify-content:center;gap:16px;
+  margin:18px auto;max-width:600px;
+}
+.hr-line{flex:1;height:1px;background:linear-gradient(to right,transparent,rgba(201,168,76,.35))}
+.hr-line.r{background:linear-gradient(to left,transparent,rgba(201,168,76,.35))}
+.hr-gem{color:var(--gold);font-size:.7em;opacity:.5;letter-spacing:6px}
+
+.tagline{
+  font-style:italic;color:#7a7068;font-size:1em;
+  max-width:560px;margin:0 auto;line-height:1.7;
+  letter-spacing:.3px;
+}
+
+/* ══════════════ VOLUNTAD BAR ══════════════ */
+.will-strip{
+  display:flex;align-items:center;gap:14px;
+  background:rgba(0,0,0,.4);border:1px solid #161618;
+  border-radius:2px;padding:10px 18px;margin:20px 0 0;
+  position:relative;overflow:hidden;
+}
+.will-strip::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,rgba(139,26,26,.08)0%,transparent 50%);
+}
+.will-label{
+  font-family:'Cinzel',serif;font-size:.58em;
+  letter-spacing:2.5px;color:rgba(201,168,76,.45);text-transform:uppercase;
+  white-space:nowrap;
+}
+.will-track{flex:1;height:6px;background:#0d0d0f;border-radius:3px;overflow:hidden;position:relative}
+.will-fill{
+  height:100%;border-radius:3px;
+  background:linear-gradient(90deg,#8b1a1a,#c94040,#e06060);
+  transition:width 1s cubic-bezier(.23,1,.32,1);
+  box-shadow:0 0 12px rgba(200,50,50,.5);
+  position:relative;
+}
+.will-fill::after{content:'';position:absolute;right:0;top:0;bottom:0;width:3px;background:rgba(255,200,200,.4);border-radius:0 3px 3px 0;filter:blur(1px)}
+.will-val{
+  font-family:'Cinzel',serif;font-size:.75em;
+  color:#c06060;min-width:36px;text-align:right;
+}
+.will-thought{
+  font-style:italic;font-size:.82em;color:#7a5858;
+  min-width:160px;text-align:right;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+
+/* ══════════════ LAYOUT ══════════════ */
+.layout{
+  display:grid;
+  grid-template-columns:270px 1fr;
+  border:1px solid #131316;border-radius:2px;
+  background:rgba(6,6,10,.7);
+  box-shadow:0 30px 80px rgba(0,0,0,.8),inset 0 1px 0 rgba(201,168,76,.04);
+  backdrop-filter:blur(6px);
+}
+
+/* ══════════════ SIDEBAR ══════════════ */
+.sidebar{
+  border-right:1px solid #131316;
+  padding:20px 14px 14px;
+  display:flex;flex-direction:column;gap:10px;
+  background:rgba(0,0,0,.25);
+}
+
+.section-title{
+  font-family:'Cinzel',serif;font-size:.56em;
+  letter-spacing:3px;color:rgba(201,168,76,.4);text-transform:uppercase;
+  padding-bottom:7px;border-bottom:1px solid #111113;
+  display:flex;align-items:center;gap:8px;
+}
+.section-title .st-gem{color:var(--gold);opacity:.35;font-size:1.2em}
+
+/* ── FACTION CARD ── */
+.faction-card{
+  border:1px solid #161618;border-radius:2px;
+  padding:9px 10px 8px;
+  position:relative;overflow:visible;
+  transition:border-color .4s,background .4s;
+  cursor:default;
+}
+.faction-card::before{
+  content:'';position:absolute;inset:0;border-radius:2px;
+  background:linear-gradient(135deg,var(--fc),transparent 70%);
+  opacity:0;transition:opacity .4s;
+}
+.faction-card:hover{border-color:var(--fc)}
+.faction-card:hover::before{opacity:.05}
+
+.fc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.fc-left{display:flex;flex-direction:column;gap:3px}
+.fc-emblem{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--fc);
+  box-shadow:0 0 8px var(--fc);
+  display:inline-block;margin-right:5px;
+  vertical-align:middle;
+}
+.fc-name{
+  font-family:'Cinzel',serif;font-size:.62em;
+  letter-spacing:1.5px;color:var(--fc);
+  text-transform:uppercase;opacity:.8;
+}
+
+.fc-val{
+  font-family:'Cinzel',serif;font-size:.82em;
+  color:var(--fc);font-weight:700;
+  text-shadow:0 0 8px var(--fc);
+  text-align:right;
+}
+.fc-val.danger{animation:dpulse 1.5s ease-in-out infinite}
+@keyframes dpulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.bar-bg{
+  height:3px;background:#0a0a0d;border-radius:2px;overflow:hidden;
+  margin-bottom:5px;
+}
+.bar-fill{
+  height:100%;border-radius:2px;
+  background:linear-gradient(90deg,var(--fc),color-mix(in srgb,var(--fc) 70%,white));
+  box-shadow:0 0 8px var(--fc);
+  transition:width .9s cubic-bezier(.23,1,.32,1);
+}
+.fc-status{font-size:.63em;color:#7a7a82;font-style:italic}
+.fc-status.warn{color:var(--fc);opacity:.85}
+
+/* Faction tooltip */
+.fc-tip{
+  display:none;position:absolute;
+  left:calc(100% + 12px);top:0;
+  background:#0c0c10;border:1px solid #222228;
+  border-left:2px solid var(--fc);border-radius:2px;
+  padding:12px 13px;width:215px;
+  font-size:.74em;z-index:50;color:#666;
+  line-height:1.6;pointer-events:none;
+  box-shadow:0 8px 32px rgba(0,0,0,.9);
+}
+.fc-tip::before{
+  content:'';position:absolute;
+  left:-7px;top:14px;
+  border:4px solid transparent;
+  border-right-color:var(--fc);
+}
+.faction-card:hover .fc-tip{display:block}
+.tip-lbl{
+  font-family:'Cinzel',serif;font-size:.72em;
+  letter-spacing:1px;color:var(--fc);opacity:.55;
+  display:block;margin-bottom:2px;margin-top:7px;
+  text-transform:uppercase;
+}
+.tip-lbl:first-child{margin-top:0}
+
+/* ── KINGDOM ORB ── */
+.orb-section{
+  display:flex;flex-direction:column;align-items:center;
+  padding:14px 0 8px;gap:8px;
+}
+.orb-wrap{position:relative;width:80px;height:80px}
+.orb-svg{width:80px;height:80px;transform:rotate(-90deg)}
+.orb-track{fill:none;stroke:#0e0e12;stroke-width:5}
+.orb-ring{
+  fill:none;stroke-width:5;stroke-linecap:round;
+  stroke-dasharray:213;
+  transition:stroke-dashoffset 1.2s cubic-bezier(.23,1,.32,1),stroke .8s;
+}
+.orb-inner{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1px;
+}
+.orb-pct{
+  font-family:'Cinzel',serif;font-size:.95em;font-weight:700;
+  line-height:1;
+}
+.orb-lbl{
+  font-family:'Cinzel',serif;font-size:.4em;
+  letter-spacing:1.5px;text-transform:uppercase;color:#7a7a82;
+}
+.orb-title{
+  font-family:'Cinzel',serif;font-size:.56em;
+  letter-spacing:2px;text-transform:uppercase;color:rgba(201,168,76,.4);
+}
+
+/* ── META ── */
+.meta-block{
+  border:1px solid #131316;border-radius:2px;
+  padding:9px 10px;font-size:.76em;
+  background:rgba(0,0,0,.2);
+}
+.meta-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:3px 0;border-bottom:1px solid #0e0e12;color:#7a7a80;
+}
+.meta-row:last-child{border-bottom:none}
+.meta-row span:last-child{color:#b0b0b8;font-weight:600}
+
+/* King thought */
+#king-thought{
+  font-style:italic;font-size:.83em;color:#7a7060;
+  text-align:center;padding:10px 6px 8px;
+  line-height:1.55;min-height:52px;
+  border-top:1px solid #111113;
+  margin-top:auto;transition:color 2s;
+}
+
+/* ══════════════ MAIN PANEL ══════════════ */
+.main-panel{
+  padding:22px 26px;
+  display:flex;flex-direction:column;gap:14px;
+}
+
+/* ── EVENT CARD ── */
+#event-area{animation:ev-in .5s ease}
+@keyframes ev-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.event-header{
+  display:flex;align-items:center;gap:12px;margin-bottom:14px;
+}
+.event-tag{
+  font-family:'Cinzel',serif;font-size:.56em;
+  letter-spacing:2.5px;padding:3px 11px;
+  border:1px solid rgba(201,168,76,.25);
+  color:rgba(201,168,76,.65);text-transform:uppercase;
+  border-radius:1px;background:rgba(201,168,76,.03);
+}
+.event-tag.crisis{border-color:rgba(180,40,40,.35);color:rgba(220,80,80,.75);background:rgba(180,40,40,.04)}
+.event-tag.conspiracion{border-color:rgba(100,80,180,.35);color:rgba(150,130,230,.75);background:rgba(100,80,180,.04)}
+.ev-line{flex:1;height:1px;background:linear-gradient(to right,#1a1a20,transparent)}
+
+.event-card{
+  padding:16px 18px;
+  background:rgba(201,168,76,.018);
+  border-left:2px solid rgba(201,168,76,.3);
+  border-radius:0 2px 2px 0;
+  position:relative;overflow:hidden;
+  box-shadow:inset 0 0 40px rgba(0,0,0,.2);
+}
+.event-card::after{
+  content:'';position:absolute;
+  top:0;left:0;right:0;height:1px;
+  background:linear-gradient(to right,rgba(201,168,76,.25),transparent);
+}
+
+/*
+  ── ESTILO DE IMÁGENES DE EVENTOS ──────────────────────────────────────
+  Tamaño recomendado: 900 × 280 px (mínimo 680 × 200 px)
+  Estilo visual:      Ilustración oscura y atmosférica — grabados medievales,
+                      miniaturas de manuscrito, woodcuts o concept art sombrío.
+                      Evitar colores saturados o brillantes.
+  Paleta:             Ocres, dorados apagados, grises carbón, rojos sangre.
+  Filtro CSS aplicado: sepia(.25) brightness(.72) contrast(1.12)
+                      — normaliza automáticamente diferentes estilos.
+  ──────────────────────────────────────────────────────────────────────
+*/
+.event-img-wrap{
+  margin:-16px -18px 16px;
+  height:170px;overflow:hidden;
+  position:relative;
+  border-bottom:1px solid rgba(201,168,76,.12);
+}
+.event-img-wrap img{
+  width:100%;height:100%;
+  object-fit:cover;object-position:center 30%;
+  filter:sepia(.25) brightness(.72) contrast(1.12);
+  display:block;
+}
+.event-img-wrap::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(to bottom,rgba(6,6,10,.1)0%,rgba(6,6,10,.65)100%);
+  pointer-events:none;
+}
+
+#event-desc{font-size:1.08em;line-height:1.8;color:#ccc0a5}
+
+.divider{
+  height:1px;
+  background:linear-gradient(to right,transparent,#1a1a20 20%,#1a1a20 80%,transparent);
+}
+
+.choices-hdr{
+  font-family:'Cinzel',serif;font-size:.55em;
+  letter-spacing:2.5px;color:rgba(201,168,76,.4);text-transform:uppercase;
+  margin-bottom:10px;display:flex;align-items:center;gap:10px;
+}
+.choices-hdr::after{content:'';flex:1;height:1px;background:#1a1a20}
+
+.btn-group{display:flex;flex-direction:column;gap:7px}
+
+button.cbtn{
+  background:rgba(255,255,255,.012);
+  color:#9a9a9e;border:1px solid #1a1a20;
+  padding:13px 16px;border-radius:2px;
+  cursor:pointer;text-align:left;
+  font-family:'Crimson Text',serif;font-size:1.02em;line-height:1.45;
+  transition:all .28s cubic-bezier(.23,1,.32,1);
+  position:relative;overflow:hidden;
+}
+button.cbtn::before{
+  content:'';position:absolute;
+  left:0;top:0;bottom:0;width:2px;
+  background:var(--gold);
+  transform:scaleY(0);transition:transform .28s cubic-bezier(.23,1,.32,1);
+  transform-origin:bottom;
+}
+button.cbtn:hover{
+  background:rgba(201,168,76,.03);color:#b09858;
+  border-color:rgba(201,168,76,.2);transform:translateX(7px);
+}
+button.cbtn:hover::before{transform:scaleY(1)}
+.cbtn-arrow{float:right;opacity:0;transition:opacity .2s,transform .2s;color:var(--gold);font-size:.85em}
+button.cbtn:hover .cbtn-arrow{opacity:.5;transform:translateX(3px)}
+.cbtn-tag{
+  font-family:'Cinzel',serif;font-size:.58em;
+  letter-spacing:1px;padding:1px 5px;border-radius:1px;
+  vertical-align:middle;margin-right:6px;
+  border:1px solid currentColor;opacity:.6;
+}
+.cbtn-tag.costly{border-color:var(--blood);color:#c05050}
+
+/* ── FEEDBACK ── */
+#feedback{
+  display:none;
+  border-left:1px solid rgba(201,168,76,.15);
+  background:rgba(0,0,0,.2);
+  animation:ev-in .35s ease;
+  overflow:hidden;
+}
+.fb-narrative{
+  font-size:.88em;color:#8a7a70;
+  font-style:italic;padding:9px 13px 8px;
+  line-height:1.5;
+  border-bottom:1px solid rgba(255,255,255,.04);
+}
+.fb-deltas{
+  display:flex;flex-wrap:wrap;gap:6px;
+  padding:8px 13px 10px;
+}
+.fb-delta{
+  font-family:'Cinzel',serif;font-size:.6em;
+  letter-spacing:1px;padding:2px 8px;
+  border-radius:1px;border:1px solid currentColor;
+  opacity:.85;white-space:nowrap;
+}
+.fb-delta.up{color:#4aaa60}
+.fb-delta.down{color:#c05050}
+.fb-delta.will-up{color:#c9a84c}
+.fb-delta.will-down{color:#a04040}
+
+/* ── CONTINUE BUTTON ── */
+#continue-btn{
+  display:none;
+  margin-top:10px;
+  background:transparent;
+  border:1px solid rgba(201,168,76,.25);
+  color:rgba(201,168,76,.55);
+  padding:10px 0;width:100%;
+  font-family:'Cinzel',serif;font-size:.62em;
+  letter-spacing:3px;text-transform:uppercase;
+  cursor:pointer;border-radius:1px;
+  transition:all .3s cubic-bezier(.23,1,.32,1);
+  position:relative;overflow:hidden;
+}
+#continue-btn::before{
+  content:'';position:absolute;inset:0;
+  background:rgba(201,168,76,.04);
+  transform:translateX(-100%);
+  transition:transform .35s cubic-bezier(.23,1,.32,1);
+}
+#continue-btn:hover{border-color:rgba(201,168,76,.5);color:var(--gold);}
+#continue-btn:hover::before{transform:translateX(0)}
+#continue-btn.vis{display:block}
+
+/* ── CHRONICLE ── */
+.chronicle{
+  border:1px solid #131316;border-radius:2px;
+  padding:12px 14px;background:rgba(0,0,0,.15);
+}
+.chron-hdr{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.chron-title{
+  font-family:'Cinzel',serif;font-size:.56em;
+  letter-spacing:2.5px;color:rgba(201,168,76,.4);text-transform:uppercase;
+}
+.chron-line{flex:1;height:1px;background:#111113}
+.log-entry{
+  font-size:.77em;color:#5a5a5e;padding:4px 0;
+  border-bottom:1px solid #0e0e12;
+  font-style:italic;display:flex;gap:8px;
+  transition:color 1s;
+}
+.log-entry:last-child{border-bottom:none}
+.log-entry.fresh{color:#8a7a60}
+.log-day{color:rgba(201,168,76,.35);font-family:'Cinzel',serif;font-size:.85em;white-space:nowrap;flex-shrink:0}
+.log-entry.fresh .log-day{color:rgba(201,168,76,.6)}
+
+/* ══════════════ GAME OVER ══════════════ */
+#game-over{
+  display:none;text-align:center;
+  padding:50px 24px;flex-direction:column;
+  gap:18px;align-items:center;
+}
+#game-over.on{display:flex}
+.go-runes{
+  font-size:1.4em;letter-spacing:20px;
+  color:var(--gold);opacity:.2;margin-bottom:4px;
+}
+.go-eyebrow{
+  font-family:'Cinzel',serif;font-size:.6em;
+  letter-spacing:4px;color:#7a6a5a;text-transform:uppercase;
+}
+.go-title{
+  font-family:'Cinzel',serif;font-size:1.55em;
+  color:var(--gold);letter-spacing:3px;
+  text-shadow:0 0 40px rgba(201,168,76,.4);
+  animation:title-shimmer 3s ease-in-out infinite;
+}
+.go-sep{
+  width:100px;height:1px;
+  background:linear-gradient(to right,transparent,rgba(201,168,76,.3),transparent);
+}
+.go-msg{
+  font-size:1.1em;line-height:1.75;color:#8a7a60;
+  max-width:480px;font-style:italic;
+}
+.go-stats-grid{
+  display:flex;gap:28px;font-family:'Cinzel',serif;
+  font-size:.65em;letter-spacing:1.5px;color:#7a7060;
+  text-transform:uppercase;
+}
+.gs-item{display:flex;flex-direction:column;align-items:center;gap:4px}
+.gs-val{font-size:1.8em;color:#a09050;letter-spacing:0}
+.restart-btn{
+  background:transparent;border:1px solid rgba(201,168,76,.3);
+  color:rgba(201,168,76,.6);padding:12px 32px;
+  font-family:'Cinzel',serif;font-size:.7em;letter-spacing:3px;
+  cursor:pointer;text-transform:uppercase;
+  transition:all .35s cubic-bezier(.23,1,.32,1);
+  border-radius:1px;position:relative;overflow:hidden;
+  margin-top:6px;
+}
+.restart-btn::before{
+  content:'';position:absolute;inset:0;
+  background:rgba(201,168,76,.06);
+  transform:translateX(-100%);
+  transition:transform .4s cubic-bezier(.23,1,.32,1);
+}
+.restart-btn:hover{border-color:rgba(201,168,76,.6);color:var(--gold);box-shadow:0 0 24px rgba(201,168,76,.15)}
+.restart-btn:hover::before{transform:translateX(0)}
+
+/* ══════════════ BOTTOM BAR ══════════════ */
+.bottom-bar{
+  border-top:1px solid #111113;padding:10px 22px;
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:.7em;color:#6a6a72;
+  background:rgba(0,0,0,.5);
+}
+.bottom-bar b{color:#a0a0a8}
+#king-status{
+  font-family:'Cinzel',serif;font-size:.84em;
+  letter-spacing:1.5px;padding:3px 12px;
+  border:1px solid transparent;border-radius:1px;
+  transition:all .6s;
+}
+.s-stable   {border-color:#1a2a1a;color:#4a9a4a}
+.s-tormented{border-color:#302408;color:#b08030}
+.s-critical {border-color:#301010;color:#c05050;animation:dpulse 1.6s ease-in-out infinite}
+
+/* ══════════════ NOTIFY TOAST ══════════════ */
+.toast{
+  position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:#0e0e14;border:1px solid #252530;border-radius:2px;
+  padding:10px 22px;font-size:.82em;color:#7a7090;
+  pointer-events:none;z-index:100;
+  transition:transform .4s cubic-bezier(.23,1,.32,1),opacity .4s;
+  opacity:0;white-space:nowrap;
+  box-shadow:0 8px 32px rgba(0,0,0,.8);
+}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* ══════════════ RESPONSIVE ══════════════ */
+@media(max-width:680px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{border-right:none;border-bottom:1px solid #131316}
+  .fc-tip{display:none!important}
+}
+</style>
+</head>
+<body>
+<canvas id="cvs"></canvas>
+<div id="vignette"></div>
+<div id="app">
+
+<!-- HEADER -->
+<header>
+  <span class="crown-sigil">♔ ✦ ♛</span>
+  <h1>El Árbitro Obligado</h1>
+  <div class="header-rule">
+    <div class="hr-line"></div>
+    <span class="hr-gem">◆ ◆ ◆</span>
+    <div class="hr-line r"></div>
+  </div>
+  <p class="tagline">"El rey no gobierna porque tenga poder absoluto, sino porque cada grupo teme más el colapso del sistema que al propio rey."</p>
+</header>
+
+<!-- VOLUNTAD BAR -->
+<div class="will-strip">
+  <div class="will-label">Voluntad del Rey</div>
+  <div class="will-track"><div class="will-fill" id="will-fill" style="width:100%"></div></div>
+  <div class="will-val" id="will-val">100</div>
+  <div class="will-thought" id="will-thought">El peso del trono aún no aplasta.</div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="section-title"><span class="st-gem">◆</span>Pilares del Trono</div>
+    <div id="factions"></div>
+
+    <div class="divider"></div>
+
+    <!-- STABILITY ORB -->
+    <div class="orb-section">
+      <div class="orb-title">Estabilidad del Reino</div>
+      <div class="orb-wrap">
+        <svg class="orb-svg" viewBox="0 0 80 80">
+          <circle class="orb-track" cx="40" cy="40" r="34"/>
+          <circle class="orb-ring" id="orb-ring" cx="40" cy="40" r="34"
+            stroke="#c9a84c" stroke-dashoffset="0"/>
+        </svg>
+        <div class="orb-inner">
+          <span class="orb-pct" id="orb-pct" style="color:#c9a84c">100</span>
+          <span class="orb-lbl" id="orb-lbl">ESTABLE</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="meta-block">
+      <div class="meta-row"><span>Días en el trono</span><span><b id="days">0</b></span></div>
+      <div class="meta-row"><span>Decisiones</span><span><b id="decisions">0</b></span></div>
+    </div>
+
+    <div id="king-thought">El rey espera en silencio.</div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-panel">
+
+    <div id="event-area">
+      <div class="event-header">
+        <span class="event-tag" id="event-tag">Petición</span>
+        <div class="ev-line"></div>
+      </div>
+      <div class="event-card">
+        <div class="event-img-wrap" id="event-img-wrap" style="display:none">
+          <img id="event-img" src="" alt="">
+        </div>
+        <p id="event-desc">Cargando situación política…</p>
+      </div>
+
+      <div id="feedback"></div>
+      <button id="continue-btn" onclick="onContinue()">Continuar ›</button>
+
+      <div class="divider" style="margin:14px 0"></div>
+
+      <div class="choices-hdr">El árbitro debe decidir</div>
+      <div class="btn-group" id="choices"></div>
+    </div>
+
+    <div id="game-over">
+      <div class="go-runes">◆ ✦ ◆</div>
+      <div class="go-eyebrow">Fin del Reinado</div>
+      <div class="go-title" id="go-title">EL TRONO HA CAÍDO</div>
+      <div class="go-sep"></div>
+      <div class="go-msg" id="go-msg"></div>
+      <div class="go-stats-grid">
+        <div class="gs-item"><span class="gs-val" id="gs-days">0</span>Días</div>
+        <div class="gs-item"><span class="gs-val" id="gs-dec">0</span>Decisiones</div>
+      </div>
+      <button class="restart-btn" onclick="location.reload()">¿Otro rey para el sacrificio?</button>
+    </div>
+
+    <div class="chronicle">
+      <div class="chron-hdr">
+        <div class="chron-title">Crónica del Reinado</div>
+        <div class="chron-line"></div>
+      </div>
+      <div id="log-entries">
+        <div class="log-entry fresh">
+          <span class="log-day">Día 0</span>
+          <span>El silencio impera en la sala del trono.</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="bottom-bar">
+  <span>Año del Árbitro · Día <b id="days2">0</b></span>
+  <span id="king-status" class="s-stable">MEDIANDO</span>
+  <span>Voluntad: <b id="eq-label">INTACTA</b></span>
+</div>
+
+<div class="toast" id="toast"></div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════
+//  BACKGROUND CANVAS
+// ═══════════════════════════════════
+(()=>{
+  const cv=document.getElementById('cvs'),cx=cv.getContext('2d');
+  let W,H,pts=[];
+  const resize=()=>{W=cv.width=innerWidth;H=cv.height=innerHeight;init()};
+  const init=()=>{
+    pts=[];
+    const n=Math.floor(W*H/14000);
+    for(let i=0;i<n;i++)pts.push({
+      x:Math.random()*W,y:Math.random()*H,
+      ox:Math.random()*W,oy:Math.random()*H,
+      sp:Math.random()*.0025+.0008,ph:Math.random()*Math.PI*2,
+      al:Math.random()*.1+.015,r:Math.random()*1.1+.2,
+      hue:Math.random()<.65?'gold':'purple'
+    });
+  };
+  let t=0;
+  const draw=()=>{
+    cx.clearRect(0,0,W,H);
+    // ambient blobs
+    [[W*.12,H*.4,.035,45],[W*.88,H*.25,.02,270],[W*.5,H*.8,.015,180]].forEach(([bx,by,a,h])=>{
+      const off=Math.sin(t*.0003+h)*50;
+      const g=cx.createRadialGradient(bx+off,by,0,bx+off,by,W*.3);
+      g.addColorStop(0,h===45?`rgba(201,168,76,${a})`:`rgba(90,60,160,${a*.7})`);
+      g.addColorStop(1,'transparent');
+      cx.fillStyle=g;cx.fillRect(0,0,W,H);
+    });
+    // particles
+    for(const p of pts){
+      p.x=p.ox+Math.sin(t*p.sp+p.ph)*55;
+      p.y=p.oy+Math.cos(t*p.sp*.8+p.ph)*38;
+      const f=.5+.5*Math.sin(t*.012+p.ph);
+      cx.beginPath();cx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      cx.fillStyle=p.hue==='gold'
+        ?`rgba(201,168,76,${p.al*f})`
+        :`rgba(110,80,180,${p.al*.5*f})`;
+      cx.fill();
+    }
+    t++;requestAnimationFrame(draw);
+  };
+  resize();draw();
+  window.addEventListener('resize',resize);
+})();
+
+// ═══════════════════════════════════
+//  STATE
+// ═══════════════════════════════════
+let days=0, decisions=0;
+let log=[], usedIdx=[];
+let will=100;
+let currentEvent=null;
+
+const factions={
+  ejercito:{label:'Ejército',value:50,color:'#c0392b',
+    desc:'Casa Alta Élfica. El brazo armado que legaliza el trono.',
+    want:'Legalidad para ejercer su propia ley sin llamarla tiranía.',
+    fear:'Guerra civil inmediata entre facciones armadas.'},
+  pueblo:{label:'Pueblo',value:50,color:'#27ae60',
+    desc:'Ciudadanos, gremios y comerciantes de la ciudad.',
+    want:'Estabilidad económica, paz cotidiana y continuidad de normas.',
+    fear:'Revuelta social, colapso económico y caos en las calles.'},
+  nobles:{label:'Nobles',value:50,color:'#2471a3',
+    desc:'Casas nobles, administradores y magistrados.',
+    want:'Un árbitro neutral que arbitre sus conflictos sin destrozarlos.',
+    fear:'Fragmentación política y guerra entre casas sin mediación.'},
+  magos:{label:'Gremio de Magos',value:50,color:'#8e44ad',
+    desc:'El Gremio de Magos. Reina en las sombras desde siempre.',
+    want:'Un títere en el trono que les deje operar sin restricciones.',
+    fear:'Perder la posición privilegiada oculta. Verse obligados a gobernar.'}
+};
+
+// ═══════════════════════════════════
+//  EVENTS  (tag, desc, options: {text,sub,effect,willCost,giveIntel})
+// ═══════════════════════════════════
+const events=[
+  {tag:'Demanda',desc:"La Casa Alta Élfica exige ejecutar a un cabecilla de los gremios por 'insultos a la corona'. Esperan tu sello.",options:[
+    {text:"Firmarlo. La ley élfica tiene precedente.",sub:"El Ejército queda satisfecho. El Pueblo entiende en silencio que la corona firma ejecuciones.",effect:{ejercito:15,pueblo:-20,nobles:5},willCost:12},
+    {text:"Perdonarlo. Un insulto no merece sangre de gremio.",sub:"El Pueblo celebra. El Ejército se siente desautorizado ante todos.",effect:{ejercito:-20,pueblo:20,magos:5},willCost:8},
+    {text:"Exilio perpetuo. Una condena que no elige bando.",sub:"Nadie queda satisfecho, pero nadie marcha a la guerra esta noche.",effect:{ejercito:-5,pueblo:5,nobles:5,magos:-5},willCost:4}
+  ]},
+  {tag:'Demanda',desc:"El Ejército solicita fondos para una 'Campaña de Prestigio' fuera de murallas. Es un pretexto para expandir influencia.",options:[
+    {text:"Aprobar la campaña. El Ejército necesita una salida.",sub:"El Ejército satisfecho, pero los impuestos golpean al Pueblo sin piedad.",effect:{ejercito:20,pueblo:-15,nobles:-5},willCost:10},
+    {text:"Veto Real. El reino no financia glorias vacías.",sub:"El Ejército murmura traición. El Pueblo respira aliviado.",effect:{ejercito:-15,nobles:5,pueblo:10},willCost:6},
+    {text:"Aprobar una incursión menor, corta y controlada.",sub:"El Ejército acepta a regañadientes. La tensión queda contenida.",effect:{ejercito:8,pueblo:-5,nobles:3},willCost:3}
+  ]},
+  {tag:'Intriga',giveIntel:true,desc:"Un oficial de la guardia élfica ha sido hallado muerto en los aposentos del Gremio. Ambas facciones esperan tu veredicto.",options:[
+    {text:"Investigación oficial bajo la corona. Nadie toca nada.",sub:"Ganas tiempo. Ambas facciones quedan frustradas pero quietas.",effect:{ejercito:-8,magos:-8,nobles:10,pueblo:5},willCost:5},
+    {text:"Culpar al Gremio. El Ejército exige justicia visible.",sub:"El Ejército te debe una. Los Magos no lo olvidarán. Nunca.",effect:{ejercito:18,magos:-22,pueblo:5,nobles:-5},willCost:14},
+    {text:"Declararlo accidente. Nadie gana, nadie pierde.",sub:"Ambos bandos sospechan que proteges al otro. La duda crece.",effect:{ejercito:-10,magos:-10,nobles:5},willCost:8}
+  ]},
+  {tag:'Tensión',desc:"Un general propone instaurar patrullas militares permanentes en los barrios gremiales para 'mantener el orden'.",options:[
+    {text:"Autorizar las patrullas con limitaciones escritas.",sub:"El Ejército avanza posiciones. El Pueblo siente la bota.",effect:{ejercito:15,pueblo:-18,magos:-5},willCost:9},
+    {text:"Rechazarlo. El orden en los barrios lo gestiona el gremio.",sub:"Los gremios respiran. El Ejército refunfuña en los cuarteles.",effect:{ejercito:-12,pueblo:15,nobles:5},willCost:7},
+    {text:"Patrullas mixtas: soldados y representantes del gremio.",sub:"Solución incómoda. Todos la aceptan a regañadientes.",effect:{ejercito:5,pueblo:5,nobles:5,magos:-5},willCost:3}
+  ]},
+  {tag:'Conspiración',giveIntel:true,desc:"Se descubre un túnel de contrabando de artefactos mágicos bajo la capital. El Gremio jura no saber nada.",options:[
+    {text:"Confiscar los artefactos para el tesoro de la corona.",sub:"Los Nobles quedan satisfechos. Los Magos, furiosos y resentidos.",effect:{magos:-20,nobles:15,ejercito:5},willCost:10},
+    {text:"Ceder la gestión al Gremio. Es su conocimiento.",sub:"Los Magos refuerzan su reinado en las sombras.",effect:{magos:20,nobles:-10,pueblo:-5},willCost:6},
+    {text:"Destruirlos. Ninguna facción controla el poder mágico.",sub:"Todos pierden algo. El equilibrio frágil se mantiene.",effect:{magos:-15,nobles:-5,ejercito:5,pueblo:8},willCost:7}
+  ]},
+  {tag:'Intriga',desc:"Los Magos ofrecen al rey una pócima que 'aliviaría' la amargura y el peso permanente del trono.",options:[
+    {text:"Beber. La paz merece cualquier precio.",sub:"Te conviertes en un títere sonriente. Los Magos controlan todo.",effect:{magos:25,ejercito:-10,nobles:-10,pueblo:-5},willCost:20,willRestore:30},
+    {text:"Rechazarlo violentamente. No a la manipulación.",sub:"Los Magos retroceden un paso. Tu voluntad permanece intacta.",effect:{magos:-18,ejercito:10,pueblo:8},willCost:5},
+    {text:"Aceptar la pócima pero no beberla. Investigarla.",sub:"Los Magos no saben si funcionó. Tensión en las sombras.",effect:{magos:-8,nobles:8,ejercito:5},willCost:3,giveIntel:true}
+  ]},
+  {tag:'Arbitraje',desc:"El Gremio solicita monopolio exclusivo sobre la educación arcana en la ciudad. Quieren el futuro.",options:[
+    {text:"Concederlo. Es su dominio natural.",sub:"Los Magos satisfechos. Los Nobles ven la amenaza que crecerá.",effect:{magos:20,nobles:-15,pueblo:-5},willCost:8},
+    {text:"Rechazarlo. La educación es responsabilidad de la corona.",sub:"Los Nobles aprueban. El Pueblo respira. Los Magos, no.",effect:{magos:-18,nobles:12,pueblo:15},willCost:10},
+    {text:"Crear un consejo mixto con supervisión de magistrados.",sub:"Una solución burocrática que a nadie convence del todo.",effect:{magos:-5,nobles:8,pueblo:5,ejercito:-3},willCost:4}
+  ]},
+  {tag:'Conspiración',giveIntel:true,desc:"El Archimago te informa en privado que un noble desarrolla magia sin licencia del Gremio. Te pide actuar.",options:[
+    {text:"Actuar. La ley mágica es la ley del Gremio.",sub:"Los Magos ganan precedente peligroso. Los Nobles, un agravio.",effect:{magos:15,nobles:-18,pueblo:3},willCost:11},
+    {text:"Ignorarlo. Es un asunto interno del Gremio.",sub:"Los Magos entienden que pierden influencia sobre los nobles.",effect:{magos:-12,nobles:10,ejercito:3},willCost:3},
+    {text:"Investigar ambas partes con tus propios agentes.",sub:"Nadie controla la investigación. Todos desconfían de ti.",effect:{magos:-6,nobles:-6,ejercito:5,pueblo:5},willCost:6}
+  ]},
+  {tag:'Conflicto',desc:"Un Noble mató a un Mago en duelo formalmente legal. El Gremio exige compensación. Los Nobles exigen respetar la ley.",options:[
+    {text:"Apoyar al Noble. La ley escrita es la ley del reino.",sub:"Los Nobles satisfechos. Los Magos, humillados públicamente.",effect:{nobles:15,magos:-20,ejercito:5},willCost:12},
+    {text:"Apoyar al Gremio. La magia merece estatuto especial.",sub:"Los Magos ganan precedente. Los Nobles guardan el agravio.",effect:{magos:18,nobles:-18,pueblo:5},willCost:12},
+    {text:"Suspender duelos con magos hasta nueva legislación.",sub:"Evitas el conflicto hoy. Creas resentimiento en ambos bandos.",effect:{nobles:-8,magos:-5,pueblo:5,ejercito:3},willCost:5}
+  ]},
+  {tag:'Arbitraje',desc:"Dos casas nobles llevan décadas en disputa por una ruta comercial clave. Ambas piden que el rey zanje el asunto.",options:[
+    {text:"Dar la ruta a la Casa con mayor respaldo militar.",sub:"Una casa queda satisfecha, la otra cultivará rencor durante años.",effect:{nobles:5,ejercito:10,pueblo:-8,magos:-5},willCost:9},
+    {text:"Dividir la ruta en administración compartida bajo la corona.",sub:"Equitativo. Ninguno celebra, pero todos aceptan de momento.",effect:{nobles:8,pueblo:5,ejercito:-3},willCost:4},
+    {text:"Nacionalizar la ruta. Que pase a manos de la corona.",sub:"El Pueblo celebra. Los Nobles, indignados con el precedente.",effect:{pueblo:18,nobles:-20,ejercito:5,magos:5},willCost:13}
+  ]},
+  {tag:'Intriga',giveIntel:true,desc:"Se rumora que un noble menor ha comprado voluntades dentro del Ejército. El Ejército lo niega. Los Nobles guardan silencio.",options:[
+    {text:"Investigar al noble. Proteger la integridad del Ejército.",sub:"El Ejército agradece el gesto. El Noble cultiva resentimiento.",effect:{ejercito:15,nobles:-18,pueblo:5},willCost:8},
+    {text:"Investigar al Ejército. Nadie está por encima del rey.",sub:"Los Nobles te apoyan de boca. El Ejército, molesto en privado.",effect:{nobles:12,ejercito:-15,magos:5},willCost:10},
+    {text:"No actuar. Las sospechas son política ordinaria.",sub:"La tensión se acumula en silencio entre facciones.",effect:{ejercito:-5,nobles:-5,pueblo:-5},willCost:2}
+  ]},
+  {tag:'Crisis',desc:"Una hambruna golpea las provincias del sur. Los Nobles guardan el grano para sus caballos y granjas de lujo.",options:[
+    {text:"Expropiar el grano. El pueblo hambriento antes que el ganado.",sub:"El Pueblo respira. Los Nobles tramarán venganza a largo plazo.",effect:{pueblo:22,nobles:-25,ejercito:5},willCost:15},
+    {text:"Comprar suministros al Gremio de Magos a precio inflado.",sub:"Costoso pero evita el conflicto directo con la nobleza.",effect:{pueblo:12,magos:15,nobles:3,ejercito:-5},willCost:8},
+    {text:"Apelar al Ejército para forzar la distribución.",sub:"El Ejército cumple. El Pueblo siente la presencia militar.",effect:{pueblo:8,ejercito:12,nobles:-8,magos:-5},willCost:6}
+  ]},
+  {tag:'Tensión',desc:"Los gremios amenazan con huelga general si no se reducen los impuestos que benefician a las casas nobles.",options:[
+    {text:"Ceder a los gremios. Reducción de impuestos ahora.",sub:"El Pueblo celebra. Los Nobles pierden ingresos y paciencia.",effect:{pueblo:20,nobles:-18,ejercito:-5},willCost:11},
+    {text:"Mantener los impuestos. La estabilidad fiscal no es negociable.",sub:"Los Nobles quedan satisfechos. La tensión popular se acumula.",effect:{nobles:12,pueblo:-18,ejercito:5},willCost:9},
+    {text:"Reducción parcial y gradual. Un acuerdo tibio.",sub:"Aplaza el conflicto sin resolverlo. Todos siguen molestos contigo.",effect:{pueblo:8,nobles:-5,magos:3},willCost:4}
+  ]},
+  {tag:'Petición',desc:"Un predicador popular afirma ante multitudes que el rey ha sido 'maldecido por los Magos'. La gente le cree.",options:[
+    {text:"Silenciar al predicador.",sub:"Los Magos satisfechos en silencio. El Pueblo sospecha de la corona.",effect:{magos:10,pueblo:-20,nobles:5},willCost:13},
+    {text:"Dar audiencia pública al predicador. Mostrar que eres libre.",sub:"El Pueblo recupera confianza. Los Magos, inquietud profunda.",effect:{pueblo:18,magos:-15,ejercito:5},willCost:7},
+    {text:"Ignorarlo. Los rumores se alimentan de atención.",sub:"El rumor crece lentamente. Nadie actúa todavía.",effect:{pueblo:-8,magos:5,nobles:3},willCost:2}
+  ]},
+  {tag:'Conspiración',giveIntel:true,desc:"Un mensajero anónimo entrega pruebas de que el Gremio y el Ejército negocian en secreto sin tu conocimiento.",options:[
+    {text:"Confrontarlos públicamente. Demostrar que el rey sabe.",sub:"Ambas facciones desestabilizadas. Tú te conviertes en objetivo.",effect:{ejercito:-18,magos:-18,nobles:10,pueblo:5},willCost:16},
+    {text:"Guardar las pruebas. El conocimiento es la ventaja del rey.",sub:"Mantienes ventaja silenciosa sobre ambas facciones.",effect:{ejercito:-5,magos:-5,nobles:8,pueblo:3},willCost:4},
+    {text:"Filtrarlas a los Nobles discretamente. Que sean el obstáculo.",sub:"Los Nobles actúan como bisagra. Un equilibrio complejo.",effect:{nobles:15,ejercito:-12,magos:-12,pueblo:5},willCost:7}
+  ]},
+  {tag:'Crisis',desc:"Un incendio destruye el barrio arcano. El Gremio culpa a nobles, los nobles culpan a los gremios populares.",options:[
+    {text:"Declarar estado de emergencia. Control directo de la corona.",sub:"El Pueblo agradece la respuesta rápida. Ambas facciones, molestas.",effect:{pueblo:18,magos:-10,nobles:-10,ejercito:8},willCost:10},
+    {text:"Encargar la reconstrucción a los Nobles.",sub:"Los Nobles ganan influencia en la zona mágica. Conflicto futuro.",effect:{nobles:18,magos:-20,pueblo:5},willCost:7},
+    {text:"Ceder la reconstrucción al Gremio de Magos.",sub:"Los Magos reconstruyen a su imagen. Los Nobles protestan.",effect:{magos:18,nobles:-15,pueblo:5},willCost:7}
+  ]},
+  {tag:'Petición',desc:"El consejo de magistrados solicita al rey designar un sucesor formal. Llevas décadas sin heredero nombrado.",options:[
+    {text:"Nombrar un heredero de las casas nobles.",sub:"Los Nobles respiran. El Ejército teme perder influencia futura.",effect:{nobles:20,ejercito:-12,magos:-8,pueblo:5},willCost:12},
+    {text:"Negarse. El rey designará sucesor cuando lo juzgue oportuno.",sub:"Tensión generalizada. Todos temen el interregno que se avecina.",effect:{ejercito:-8,pueblo:-8,nobles:-8,magos:-8},willCost:6},
+    {text:"Nombrar a alguien sin facción conocida. Un árbitro como tú.",sub:"Nadie queda satisfecho. El sistema árbitro se perpetúa.",effect:{ejercito:-5,pueblo:10,nobles:-5,magos:-5},willCost:8}
+  ]},
+  {tag:'Arbitraje',desc:"Una epidemia de origen desconocido aparece en los barrios bajos. El Gremio ofrece su cura… a cambio de nuevos privilegios.",options:[
+    {text:"Aceptar los privilegios. La cura primero.",sub:"La epidemia termina. Los Magos ganan terreno permanente.",effect:{pueblo:20,magos:18,nobles:-12,ejercito:-5},willCost:14},
+    {text:"Rechazar el trato. Buscar cura propia a través de médicos.",sub:"El proceso es más lento. El Pueblo sufre más tiempo.",effect:{pueblo:-10,magos:-15,nobles:8,ejercito:5},willCost:9},
+    {text:"Negociar privilegios menores. Ceder lo mínimo posible.",sub:"Un acuerdo mediocre que salva vidas con menor coste.",effect:{pueblo:12,magos:8,nobles:-5,ejercito:3},willCost:6}
+  ]},
+  {tag:'Conflicto',desc:"El Ejército propone que magistrados nobles respondan ante tribunales militares en casos de 'traición al orden público'.",options:[
+    {text:"Aprobar el tribunal militar. El orden lo justifica.",sub:"El Ejército expande jurisdicción. Los Nobles, aterrorizados.",effect:{ejercito:22,nobles:-25,pueblo:5},willCost:17},
+    {text:"Rechazarlo. La nobleza responde ante sus propios tribunales.",sub:"Los Nobles respiran aliviados. El Ejército siente el freno.",effect:{ejercito:-18,nobles:20,pueblo:-5,magos:5},willCost:12},
+    {text:"Crear una cámara mixta con representación de ambos.",sub:"Burocracia lenta que satisface a todos a medias.",effect:{ejercito:5,nobles:5,pueblo:3,magos:-3},willCost:5}
+  ]},
+  {tag:'Intriga',giveIntel:true,desc:"Un emisario de otro reino visita con propuesta de alianza matrimonial. Las cuatro facciones tienen opiniones distintas.",options:[
+    {text:"Aceptar la alianza. El exterior refuerza la posición del rey.",sub:"El Pueblo celebra. Nobles y Magos temen la influencia extranjera.",effect:{pueblo:15,ejercito:10,nobles:-12,magos:-12},willCost:9},
+    {text:"Rechazarla. El reino no necesita dependencias exteriores.",sub:"Aislamiento. Las facciones internas recuperan toda la influencia.",effect:{nobles:8,magos:8,ejercito:-8,pueblo:-10},willCost:5},
+    {text:"Dejar la decisión en manos del consejo de nobles.",sub:"Los Nobles ganan visibilidad pública. El rey parece débil.",effect:{nobles:15,ejercito:-8,magos:-5,pueblo:-5},willCost:3}
+  ]},
+  // Nuevos eventos
+  {tag:'Voluntad',desc:"Los cuatro pilares del trono se reúnen en secreto y te envían una carta colectiva: 'El reino requiere un rey con voluntad de gobernar, no de arbitrar'.",options:[
+    {text:"Mostrar fuerza: publicar la carta y desafiarlos abiertamente.",sub:"El rey cobra visibilidad. Las facciones temen perder el árbitro. Tu voluntad se fortalece.",effect:{ejercito:-5,nobles:-5,magos:-5,pueblo:10},willCost:-15},
+    {text:"Ignorarla. Las amenazas veladas son política ordinaria.",sub:"La carta circula entre nobles. Tu silencio se interpreta como debilidad.",effect:{ejercito:-8,nobles:-8,magos:-8,pueblo:-5},willCost:10},
+    {text:"Convocar a los emisarios y responder en privado, uno a uno.",sub:"Cada facción queda satisfecha de haber tenido acceso personal al rey.",effect:{ejercito:5,nobles:5,magos:5,pueblo:5},willCost:8}
+  ]},
+  {tag:'Crisis',desc:"El tesoro real está casi vacío. Alguien lo ha vaciado desde dentro durante años. Todas las facciones niegan cualquier responsabilidad.",options:[
+    {text:"Auditoría total bajo supervisión de magistrados neutrales.",sub:"Los Nobles ganan influencia al dirigir la auditoría. El culpable queda impune.",effect:{nobles:12,magos:-10,ejercito:-8,pueblo:5},willCost:7,giveIntel:true},
+    {text:"Imponer un impuesto de emergencia a las casas nobles.",sub:"El Pueblo respira. Los Nobles, furiosos. El Ejército recibe más fondos.",effect:{pueblo:15,nobles:-22,ejercito:8},willCost:12},
+    {text:"Silenciarlo. La estabilidad requiere que este secreto no salga a la luz.",sub:"El tesoro sigue vacío. Todos lo saben. Nadie lo dice.",effect:{ejercito:-4,nobles:-4,magos:-4,pueblo:-4},willCost:15}
+  ]},
+  {tag:'Intriga',desc:"El Archimago te ofrece ver el futuro a través de una visión mágica. Pero la visión solo puede mostrar lo que ya temes.",options:[
+    {text:"Rechazar la visión. El rey no necesita el futuro para decidir el presente.",sub:"Los Magos te respetan más. Tu voluntad permanece sin contaminar.",effect:{magos:-5,nobles:5,pueblo:5},willCost:3},
+    {text:"Aceptar. Necesitas saber lo que viene.",sub:"La visión muestra el colapso de una facción. No sabes cuál. Tu voluntad se resiente.",effect:{magos:12,ejercito:-5,nobles:-5,pueblo:-5},willCost:18},
+    {text:"Pedir la visión al Gremio sin que el Archimago lo sepa.",sub:"Recibes información fragmentada pero real. El Archimago sospecha.",effect:{magos:-10,nobles:5,ejercito:3,pueblo:5},willCost:8}
+  ]},
+
+  // ── BLOQUE II ──────────────────────────────────────────
+
+  {tag:'Petición',desc:"Los taberneros y mercaderes piden que la guardia élfica deje de cobrar 'peajes informales' en las puertas del mercado.",options:[
+    {text:"Ordenar al Ejército que cese la práctica de inmediato.",sub:"El Pueblo respira. El Ejército pierde una fuente de ingresos no oficial.",effect:{pueblo:18,ejercito:-14,nobles:3},willCost:8},
+    {text:"Ignorarlo. Los peajes informales son parte del orden establecido.",sub:"El Pueblo acumula frustración silenciosa. El Ejército sigue operando.",effect:{pueblo:-10,ejercito:8},willCost:2},
+    {text:"Regularizarlo: convertir los peajes en impuesto oficial bajo la corona.",sub:"El Ejército pierde autonomía. El Pueblo paga lo mismo pero con papel sellado.",effect:{pueblo:-5,ejercito:-5,nobles:10,magos:3},willCost:5}
+  ]},
+  {tag:'Conflicto',desc:"Una disputa por aguas de riego enfrenta a tres aldeas del norte. Dos casas nobles respaldan bandos distintos. El Ejército amenaza con intervenir.",options:[
+    {text:"Enviar un magistrado real. La corona zanja el conflicto.",sub:"El rey gana visibilidad como árbitro directo. Los nobles se sienten desplazados.",effect:{pueblo:12,nobles:-10,ejercito:-5,magos:3},willCost:6},
+    {text:"Dejar que los nobles lo resuelvan. Es territorio de sus casas.",sub:"Los nobles resuelven a su favor. Las aldeas no ganan nada.",effect:{nobles:15,pueblo:-12,ejercito:5},willCost:3},
+    {text:"Ordenar al Ejército una solución rápida.",sub:"El Ejército impone un reparto. Nadie lo considera justo.",effect:{ejercito:12,pueblo:-8,nobles:-8},willCost:7}
+  ]},
+  {tag:'Tensión',desc:"Un pergamino anónimo circula entre los cuarteles describiendo al rey como 'el último obstáculo para la verdadera grandeza élfica'.",options:[
+    {text:"Investigar el origen con agentes propios.",sub:"La investigación irrita al Ejército. Nadie confiesa. La tensión queda contenida.",effect:{ejercito:-10,nobles:8,magos:5,pueblo:3},willCost:9},
+    {text:"Convocar al Alto Mando y exigir que lo condenen públicamente.",sub:"El Alto Mando condena el texto. El resentimiento queda bajo la superficie.",effect:{ejercito:-5,nobles:5,pueblo:8},willCost:6},
+    {text:"No reaccionar. El rey no teme palabras en papel.",sub:"El pergamino sigue circulando. Algunos lo toman como licencia.",effect:{ejercito:5,pueblo:-8,nobles:-5},willCost:2}
+  ]},
+  {tag:'Arbitraje',desc:"El Gremio de Magos reclama derechos sobre los restos de un antiguo templo descubierto bajo la ciudad. Los Nobles reclaman la tierra como suya.",options:[
+    {text:"Adjudicar el templo al Gremio. El conocimiento arcano tiene prioridad.",sub:"Los Magos excavan en silencio. Los Nobles guardan el agravio.",effect:{magos:18,nobles:-16,pueblo:3},willCost:8},
+    {text:"Adjudicar la tierra a los Nobles. La propiedad tiene precedente.",sub:"Los Nobles ganan terreno literal. Los Magos pierden una reliquia.",effect:{nobles:15,magos:-18,ejercito:5},willCost:9},
+    {text:"Convertirlo en patrimonio de la corona. Nadie lo toca.",sub:"Ambos bandos pierden el acceso. La corona gana un activo simbólico.",effect:{nobles:-8,magos:-8,pueblo:10,ejercito:3},willCost:5}
+  ]},
+  {tag:'Crisis',desc:"Una plaga de ratas arrasa los almacenes de grano de la ciudad baja. El hambre es inminente si no se actúa esta semana.",options:[
+    {text:"Movilizar al Ejército para distribuir las reservas reales.",sub:"El Pueblo agradece la rapidez. Las reservas reales quedan muy mermadas.",effect:{pueblo:20,ejercito:8,nobles:-5,magos:-5},willCost:10},
+    {text:"Pedir al Gremio que use magia para limpiar los almacenes.",sub:"Los Magos resuelven el problema… y exigen compensación posterior.",effect:{pueblo:12,magos:15,nobles:-5,ejercito:-3},willCost:7},
+    {text:"Imponer racionamiento estricto. El orden antes que la comodidad.",sub:"El hambre se distribuye más equitativamente. El Pueblo, furioso igual.",effect:{pueblo:-12,nobles:5,ejercito:8,magos:3},willCost:8}
+  ]},
+  {tag:'Intriga',desc:"Un noble anciano confiesa en su lecho de muerte haber falsificado documentos que legitiman el título de otra casa. Tres familias quedan afectadas.",options:[
+    {text:"Anular los títulos falsificados. La ley debe aplicarse.",sub:"La casa ilegítima colapsa. Los Nobles temen que sus propios títulos sean revisados.",effect:{nobles:-15,pueblo:8,ejercito:5,magos:5},willCost:13},
+    {text:"Validar los títulos. El caos social es peor que la irregularidad.",sub:"La casa mantiene su posición. El Pueblo percibe que la nobleza se protege sola.",effect:{nobles:12,pueblo:-10,magos:-5},willCost:6},
+    {text:"Ordenar una revisión general de títulos nobiliarios.",sub:"Los Nobles se revuelven. El proceso durará años y llenará los tribunales.",effect:{nobles:-20,pueblo:5,magos:8,ejercito:-5},willCost:15}
+  ]},
+  {tag:'Demanda',desc:"El Ejército exige el derecho de inspeccionar cualquier laboratorio mágico dentro de las murallas 'por seguridad del reino'.",options:[
+    {text:"Conceder el derecho de inspección con aviso previo.",sub:"El Ejército gana acceso a las operaciones del Gremio. Los Magos, indignados.",effect:{ejercito:15,magos:-18,nobles:5},willCost:9},
+    {text:"Rechazarlo. Los laboratorios del Gremio son territorio propio.",sub:"Los Magos respiraron aliviados. El Ejército, frustrado y desconfiado.",effect:{ejercito:-14,magos:15,pueblo:5},willCost:7},
+    {text:"Permitir inspecciones solo con orden firmada por el rey.",sub:"Un equilibrio burocrático que ninguno celebra pero todos aceptan.",effect:{ejercito:5,magos:-5,nobles:8,pueblo:3},willCost:4}
+  ]},
+  {tag:'Conspiración',desc:"Se filtra que un grupo de nobles ha financiado en secreto una milicia privada en los suburbios. El Ejército exige su disolución inmediata.",options:[
+    {text:"Ordenar la disolución. Solo el Ejército puede portar armas.",sub:"Los Nobles pierden su red de seguridad privada. El Ejército consolida el monopolio.",effect:{ejercito:18,nobles:-20,pueblo:5},willCost:12},
+    {text:"Permitir a los Nobles mantener guardias personales limitados.",sub:"Un compromiso que mantiene la tensión en nivel manejable.",effect:{nobles:8,ejercito:-8,pueblo:3},willCost:5},
+    {text:"Ignorarlo. Las milicias privadas son parte de la historia de este reino.",sub:"La milicia crece. El Ejército se prepara para una confrontación futura.",effect:{nobles:12,ejercito:-14,pueblo:-8},willCost:3}
+  ]},
+  {tag:'Petición',desc:"Un artesano gremial presenta una invención que podría reemplazar a decenas de trabajadores. Los gremios exigen que el rey la prohíba.",options:[
+    {text:"Prohibir la invención. La estabilidad social primero.",sub:"Los gremios respiran. El Pueblo ve cómo el progreso se frena para proteger privilegios.",effect:{pueblo:-8,nobles:-5,magos:-8,ejercito:5},willCost:7},
+    {text:"Permitirla. El progreso no se detiene.",sub:"Los gremios furiosos convocan protestas. El Pueblo se divide.",effect:{pueblo:-12,nobles:10,magos:8,ejercito:-5},willCost:10},
+    {text:"Crear una transición gradual con compensaciones para los desplazados.",sub:"Nadie queda contento, pero el conflicto se aplaza.",effect:{pueblo:5,nobles:3,magos:3,ejercito:3},willCost:6}
+  ]},
+  {tag:'Tensión',desc:"El barrio mágico y el barrio élfico comparten una fuente. Los Magos quieren instalar filtros arcanos. El Ejército lo ve como contaminación.",options:[
+    {text:"Autorizar los filtros arcanos. El Gremio tiene jurisdicción técnica.",sub:"Los Magos ganan control de un recurso compartido. El Ejército, suspicaz.",effect:{magos:12,ejercito:-10,pueblo:-5},willCost:5},
+    {text:"Prohibirlos. El agua pública no se altera con magia.",sub:"El Ejército queda satisfecho. Los Magos, con una deuda pendiente.",effect:{ejercito:10,magos:-14,pueblo:8},willCost:6},
+    {text:"Instalar filtros ordinarios bajo supervisión conjunta.",sub:"Una solución cara y lenta que nadie odia del todo.",effect:{magos:-3,ejercito:-3,pueblo:10,nobles:5},willCost:4}
+  ]},
+  {tag:'Voluntad',desc:"Llevas demasiado tiempo sin dormir más de tres horas. Tu escribano te encuentra hablando solo en la sala del trono al alba.",options:[
+    {text:"Tomarte una semana de retiro en los aposentos reales. Sin audiencias.",sub:"El descanso restaura tu claridad. Las facciones, nerviosas ante el silencio.",effect:{ejercito:-5,nobles:-5,magos:-5,pueblo:-5},willCost:-20},
+    {text:"Continuar. El rey no puede permitirse el lujo del descanso.",sub:"La voluntad se resiente, pero la imagen de fortaleza se mantiene.",effect:{ejercito:5,nobles:5,magos:3},willCost:12},
+    {text:"Delegar las audiencias al consejo esta semana.",sub:"Los Nobles ganan protagonismo. El rey pierde visibilidad temporalmente.",effect:{nobles:15,ejercito:-5,magos:5,pueblo:-5},willCost:6}
+  ]},
+  {tag:'Arbitraje',desc:"Un gremio de bardos solicita protección real para sus canciones. Algunas de esas canciones ridiculizan a nobles y magos.",options:[
+    {text:"Conceder la protección. El arte es libre bajo la corona.",sub:"El Pueblo ama al rey por esto. Nobles y Magos aprenden a vigilar sus reputaciones.",effect:{pueblo:18,nobles:-10,magos:-10,ejercito:3},willCost:8},
+    {text:"Rechazarlo. La corona no protege sátiras.",sub:"Los bardos callan. El Pueblo entiende quién controla las palabras.",effect:{pueblo:-14,nobles:8,magos:8,ejercito:3},willCost:5},
+    {text:"Proteger las canciones pero prohibir nombrar a personas vivas.",sub:"Los bardos adaptan su arte. Las burlas se vuelven más creativas.",effect:{pueblo:8,nobles:-3,magos:-3},willCost:3}
+  ]},
+  {tag:'Conflicto',desc:"Un mago de bajo rango ha sido detenido por el Ejército acusado de espionaje. El Gremio exige su liberación inmediata.",options:[
+    {text:"Liberar al mago. El Gremio garantiza su inocencia.",sub:"Los Magos quedan satisfechos. El Ejército, humillado ante sus propios hombres.",effect:{magos:16,ejercito:-18,pueblo:5},willCost:10},
+    {text:"Mantenerlo detenido hasta que el juicio concluya.",sub:"El Ejército aplica la ley. El Gremio no olvidará la afrenta.",effect:{ejercito:14,magos:-16,nobles:5},willCost:8},
+    {text:"Transferirlo a custodia real mientras se investiga.",sub:"La corona absorbe el conflicto. Ambas facciones quedan suspendidas.",effect:{magos:-5,ejercito:-5,nobles:10,pueblo:5},willCost:6}
+  ]},
+  {tag:'Intriga',desc:"Tu propio chambelán —de confianza desde hace veinte años— ha sido visto reuniéndose en secreto con representantes de los Magos.",options:[
+    {text:"Despedirlo en silencio. La lealtad no admite grises.",sub:"El Gremio entiende que tienen un infiltrado menos. El rey pierde un aliado valioso.",effect:{magos:-10,nobles:5,ejercito:5},willCost:10},
+    {text:"Confrontarlo. Quizás tenga una explicación.",sub:"El chambelán admite que los Magos le ofrecieron dinero. Su lealtad, rota para siempre.",effect:{magos:-8,pueblo:5,nobles:3},willCost:7},
+    {text:"Dejarlo en su puesto y usarlo como canal de desinformación.",sub:"El rey tiene una línea abierta hacia el Gremio que ellos creen controlar.",effect:{magos:-5,nobles:8,ejercito:5,pueblo:3},willCost:5}
+  ]},
+  {tag:'Crisis',desc:"Una revuelta menor estalla en los suburbios del este. Piden no más impuestos. El Ejército pide autorización para disolver por la fuerza.",options:[
+    {text:"Autorizar la disolución forzosa.",sub:"El Ejército aplasta la revuelta. El Pueblo de la ciudad lo mira desde las ventanas.",effect:{ejercito:18,pueblo:-22,nobles:5},willCost:14},
+    {text:"Enviar negociadores. Escuchar las demandas.",sub:"La revuelta se calma. Los cabecillas quedan como héroes del barrio.",effect:{pueblo:16,ejercito:-10,nobles:-5},willCost:8},
+    {text:"Reducir los impuestos de ese barrio temporalmente.",sub:"La revuelta cede. Otros barrios exigen lo mismo al día siguiente.",effect:{pueblo:8,nobles:-8,ejercito:-5,magos:3},willCost:9}
+  ]},
+  {tag:'Demanda',desc:"Los Nobles reclaman el derecho a juzgar a sus propios siervos sin intervención de la justicia real.",options:[
+    {text:"Concederlo. La jurisdicción señorial tiene tradición.",sub:"Los Nobles ganan un feudo legal dentro del reino. El Pueblo pierde derechos.",effect:{nobles:20,pueblo:-18,ejercito:-5,magos:-3},willCost:11},
+    {text:"Rechazarlo. Un reino, una justicia.",sub:"El Pueblo agradece la protección. Los Nobles, furiosos con el precedente.",effect:{pueblo:18,nobles:-20,ejercito:8},willCost:12},
+    {text:"Permitirlo solo para faltas menores, no para crímenes graves.",sub:"Un compromiso que no gusta del todo a ningún bando.",effect:{nobles:8,pueblo:-5,ejercito:5},willCost:5}
+  ]},
+  {tag:'Petición',desc:"Un grupo de viudas de soldados peticiona al rey una pensión estatal. El Ejército se niega a financiarla desde sus propios fondos.",options:[
+    {text:"Crear la pensión a cargo del tesoro real.",sub:"El Pueblo celebra la humanidad del rey. Los Nobles protestan por el gasto.",effect:{pueblo:15,ejercito:8,nobles:-10},willCost:7},
+    {text:"Obligar al Ejército a asumir el coste.",sub:"El Ejército acata. Las viudas cobran. El resentimiento militar crece.",effect:{pueblo:10,ejercito:-12,nobles:5},willCost:9},
+    {text:"Rechazar la petición. El tesoro no puede sostener esa carga.",sub:"Las viudas marchan a sus casas. El Pueblo no lo olvida.",effect:{pueblo:-14,ejercito:-5,nobles:5},willCost:4}
+  ]},
+  {tag:'Conspiración',desc:"Se descubre que el Gremio de Magos ha estado vendiendo pociones de influencia mental a un grupo de nobles de segunda fila.",options:[
+    {text:"Procesar públicamente al Gremio y a los nobles implicados.",sub:"Escándalo total. La reputación del Gremio sufre. Los Nobles temen ser los próximos.",effect:{magos:-22,nobles:-14,pueblo:15,ejercito:8},willCost:15},
+    {text:"Resolverlo en privado. Un escándalo público desestabiliza más que el delito.",sub:"El Gremio y los nobles quedan en deuda con el rey. El secreto los ata.",effect:{magos:-5,nobles:-5,pueblo:-3},willCost:8},
+    {text:"Confiscar las pociones y multar al Gremio sin proceso.",sub:"El Gremio paga. El asunto se cierra. Nadie queda del todo contento.",effect:{magos:-12,nobles:5,pueblo:8,ejercito:3},willCost:6}
+  ]},
+  {tag:'Tensión',desc:"El Alto Mando propone construir una fortaleza nueva en las afueras. Los vecinos del área deben ser reubicados. Son familia de comerciantes.",options:[
+    {text:"Aprobar la fortaleza. La defensa del reino es prioritaria.",sub:"El Ejército gana infraestructura estratégica. El Pueblo pierde vecinos y hogares.",effect:{ejercito:18,pueblo:-15,nobles:-5},willCost:10},
+    {text:"Rechazarlo. No se desplaza a ciudadanos por conveniencia militar.",sub:"El Ejército entiende que el rey pone al Pueblo por delante. Lo acepta a regañadientes.",effect:{ejercito:-12,pueblo:16,nobles:5},willCost:8},
+    {text:"Aprobarla con compensación completa para los desplazados.",sub:"Costoso pero justo. El Ejército obtiene su fortaleza. El Pueblo, una reparación.",effect:{ejercito:10,pueblo:5,nobles:-5,magos:-3},willCost:7}
+  ]},
+  {tag:'Arbitraje',desc:"Una academia de artes marciales fundada por nobles enseña combate sin licencia del Ejército. El Ejército lo considera una amenaza.",options:[
+    {text:"Cerrar la academia. Solo el Ejército forma combatientes.",sub:"Los Nobles pierden prestigio. El Ejército consolida el monopolio de la fuerza.",effect:{ejercito:14,nobles:-16,pueblo:-5},willCost:9},
+    {text:"Dejar la academia abierta bajo supervisión de la corona.",sub:"Los Nobles mantienen su espacio. El Ejército acepta el control real.",effect:{nobles:10,ejercito:-5,pueblo:8,magos:3},willCost:5},
+    {text:"Integrarla como academia auxiliar del Ejército.",sub:"Los nobles se sienten absorbidos. El Ejército gana reclutas de calidad.",effect:{ejercito:12,nobles:-8,pueblo:5},willCost:6}
+  ]},
+  {tag:'Intriga',desc:"Un embajador extranjero muere en palacio durante una cena diplomática. Las cuatro facciones señalan a las demás.",options:[
+    {text:"Abrir una investigación real. La corona asume la responsabilidad.",sub:"La corona demuestra transparencia. La investigación incomoda a todos por igual.",effect:{pueblo:12,nobles:-8,magos:-8,ejercito:-5},willCost:11},
+    {text:"Culpar al Gremio. Tienen los medios y el motivo.",sub:"El Gremio niega todo. El reino exterior exige explicaciones que nadie tiene.",effect:{magos:-18,nobles:8,pueblo:5,ejercito:8},willCost:13},
+    {text:"Declararlo muerte natural. Evitar el incidente diplomático.",sub:"Nadie cree la versión oficial. La desconfianza se extiende como veneno.",effect:{pueblo:-8,nobles:-5,magos:5,ejercito:-5},willCost:5}
+  ]},
+  {tag:'Conflicto',desc:"Una facción dentro del Ejército quiere retirar a su general en jefe y propone a un candidato sin experiencia en campo.",options:[
+    {text:"Apoyar la destitución. La renovación es necesaria.",sub:"El Ejército se fragmenta brevemente. El nuevo general te debe el cargo.",effect:{ejercito:-8,nobles:10,pueblo:5,magos:-3},willCost:10},
+    {text:"Defender al general en jefe. La estabilidad del mando no se negocia.",sub:"El general refuerza su posición. La facción interna murmura.",effect:{ejercito:10,nobles:-8,pueblo:-5},willCost:7},
+    {text:"Mediar. Crear un mando compartido temporalmente.",sub:"El Ejército opera con dos cabezas. Ineficiente pero sin crisis abierta.",effect:{ejercito:-5,nobles:5,pueblo:3},willCost:6}
+  ]},
+  {tag:'Petición',desc:"Un alquimista presenta al rey una fórmula que afirma convierte el plomo en oro. Pide financiación real para probarlo.",options:[
+    {text:"Financiarlo. Si funciona, el tesoro real queda resuelto para siempre.",sub:"El proyecto fracasa. El Gremio se mofa. El tesoro pierde fondos.",effect:{magos:-5,nobles:-8,pueblo:-5,ejercito:-5},willCost:14},
+    {text:"Rechazarlo. El tesoro no financia ilusiones.",sub:"El alquimista marcha a otro reino. Si funciona allí, habrás perdido algo valioso.",effect:{nobles:5,magos:-5,pueblo:3},willCost:3},
+    {text:"Financiarlo bajo supervisión del Gremio de Magos.",sub:"El Gremio confirma que es fraude. Ganan credibilidad técnica.",effect:{magos:12,nobles:-3,pueblo:5},willCost:6}
+  ]},
+  {tag:'Demanda',desc:"Los Magos exigen que ningún hechizo de rango superior sea practicado fuera de sus instalaciones, incluyendo el de los nobles aficionados.",options:[
+    {text:"Aprobarlo. La magia sin control es peligrosa.",sub:"El Gremio consolida el monopolio arcano. Los Nobles aficionados, furiosos.",effect:{magos:18,nobles:-15,pueblo:5,ejercito:3},willCost:8},
+    {text:"Rechazarlo. La magia privada entre paredes privadas es asunto privado.",sub:"Los Nobles celebran la libertad. El Gremio pierde terreno regulatorio.",effect:{nobles:15,magos:-16,pueblo:5},willCost:7},
+    {text:"Aplicarlo solo en espacios públicos. En privado, cada uno hace lo que puede.",sub:"Un compromiso que el Gremio considera insuficiente.",effect:{magos:-5,nobles:8,pueblo:8,ejercito:3},willCost:4}
+  ]},
+  {tag:'Crisis',desc:"Un puente principal de la ciudad cae. Mueren doce personas. El Ejército culpa al gremio de constructores. El gremio culpa a la negligencia militar.",options:[
+    {text:"Imputar al gremio. Son responsables de la construcción.",sub:"El Pueblo exige justicia. Los constructores sufren. El Ejército queda limpio.",effect:{pueblo:5,ejercito:15,nobles:5,magos:-5},willCost:10},
+    {text:"Imputar al Ejército por negligencia en el mantenimiento.",sub:"El Ejército paga el coste político. El gremio respira.",effect:{pueblo:12,ejercito:-18,nobles:5},willCost:12},
+    {text:"Crear una comisión de investigación independiente.",sub:"El proceso es largo. Nadie queda satisfecho de inmediato.",effect:{pueblo:5,ejercito:-5,nobles:8,magos:5},willCost:5}
+  ]},
+  {tag:'Tensión',desc:"Un noble ha construido un palacio que supera en altura a las torres del palacio real. El Ejército lo ve como provocación.",options:[
+    {text:"Ordenar la demolición de los pisos superiores.",sub:"El noble acata humillado. Los Nobles ven la arbitrariedad real.",effect:{nobles:-14,ejercito:10,pueblo:5},willCost:9},
+    {text:"Ignorarlo. Una torre es solo piedra.",sub:"El Pueblo y el Ejército interpretan que el rey tolera ser desafiado.",effect:{nobles:8,pueblo:-8,ejercito:-8},willCost:2},
+    {text:"Legalizarlo a cambio de que el noble sufrague obras públicas.",sub:"El noble paga. La ciudad gana infraestructura. El rey gana imagen.",effect:{nobles:-3,pueblo:15,ejercito:5},willCost:4}
+  ]},
+  {tag:'Voluntad',desc:"Un niño de ocho años te ofrece una flor en el patio del palacio y te pregunta si ser rey es difícil. Su pregunta te detiene.",options:[
+    {text:"Responderle honestamente. 'Sí. Más de lo que imaginaba.'",sub:"El momento se filtra entre la guardia. El Pueblo ve humanidad en el rey.",effect:{pueblo:12,ejercito:3,nobles:-3},willCost:-8},
+    {text:"Darle una respuesta de rey. Salud, prosperidad, deber.",sub:"El niño asiente serio. El rey sigue andando. Nada cambia.",effect:{},willCost:3},
+    {text:"Invitarlo a pasar el día en palacio. Necesitas ver el mundo con sus ojos.",sub:"El rey descansa desde otra perspectiva. Las facciones se preguntan qué trama.",effect:{pueblo:8,nobles:-5,magos:-5},willCost:-10}
+  ]},
+  {tag:'Conspiración',desc:"Un grupo de sacerdotes de la Orden del Umbral afirma tener profecías que indican que el actual rey debe abdicar antes del próximo solsticio.",options:[
+    {text:"Expulsarlos de la ciudad. La profecía es sedición disfrazada.",sub:"La Orden se va. Sus seguidores en el Pueblo quedan descontentos.",effect:{pueblo:-14,nobles:8,magos:5,ejercito:5},willCost:10},
+    {text:"Darles audiencia pública y desmentir las profecías.",sub:"El rey se enfrenta a los clérigos. Su seguridad impresiona al Pueblo.",effect:{pueblo:15,nobles:5,magos:-8,ejercito:5},willCost:8},
+    {text:"Ignorarlos. Las profecías solo tienen poder si las tomas en serio.",sub:"La profecía circula. Algunos nobles empiezan a hacerse preguntas.",effect:{pueblo:-5,nobles:-8,magos:5},willCost:3}
+  ]},
+  {tag:'Arbitraje',desc:"Dos gremios de comerciantes reclaman el derecho exclusivo de importar telas del este. Solo uno puede tenerlo.",options:[
+    {text:"Dar la licencia al gremio más antiguo. El precedente manda.",sub:"La tradición se impone. El gremio perdedor busca aliados entre los nobles.",effect:{pueblo:-3,nobles:-8,magos:3,ejercito:5},willCost:5},
+    {text:"Dar la licencia al gremio más pequeño. Fomentar la competencia.",sub:"El gremio grande pierde el monopolio. El Pueblo se beneficia a largo plazo.",effect:{pueblo:12,nobles:-5,magos:-3,ejercito:-3},willCost:7},
+    {text:"Abrir la importación a todos. Sin monopolios.",sub:"Ambos gremios pierden ventaja. El mercado se democratiza.",effect:{pueblo:15,nobles:-5,magos:-5,ejercito:-3},willCost:9}
+  ]},
+  {tag:'Intriga',desc:"El comandante de la guardia real te informa que alguien ha estado revisando en secreto tus cartas personales cada noche.",options:[
+    {text:"Tender una trampa con cartas falsas y atrapar al espía.",sub:"El espía cae. Es un noble de alto rango. El escándalo sacude a su casa.",effect:{nobles:-18,ejercito:10,magos:-5,pueblo:8},willCost:10},
+    {text:"Cambiar el sistema de correo real sin decir por qué.",sub:"Las cartas se aseguran. El espía no sabe que fue descubierto.",effect:{magos:-3,nobles:-3,ejercito:8},willCost:5},
+    {text:"Escribir cartas comprometedoras ficticias para confundir.",sub:"El espía lleva información falsa a su señor. La desinformación trabaja para ti.",effect:{nobles:-8,magos:8,ejercito:5,pueblo:3},willCost:6}
+  ]},
+  {tag:'Conflicto',desc:"El Pueblo exige que los nobles tributen igual que los comerciantes. Los Nobles lo consideran una humillación sin precedente.",options:[
+    {text:"Imponer el tributo igualitario. La justicia fiscal no entiende de sangre.",sub:"El Pueblo celebra. Los Nobles juran revancha en privado.",effect:{pueblo:22,nobles:-24,ejercito:5,magos:3},willCost:15},
+    {text:"Rechazarlo. Los nobles tributan de otra forma, siempre lo han hecho.",sub:"Los Nobles respiran. El Pueblo acumula resentimiento.",effect:{nobles:15,pueblo:-18,ejercito:5},willCost:8},
+    {text:"Crear un 'tributo de honor' simbólico para los nobles.",sub:"Los Nobles pagan poco. El Pueblo obtiene el gesto pero no el dinero.",effect:{nobles:-5,pueblo:-5,ejercito:3,magos:5},willCost:5}
+  ]},
+  {tag:'Demanda',desc:"El Gremio de Magos pide al rey que asista personalmente a la ceremonia anual de renovación del Sello Arcano. Su presencia 'legitimaría el Gremio ante el reino'.",options:[
+    {text:"Asistir. La diplomacia requiere presencia.",sub:"El Gremio gana visibilidad e imagen de aval real. Los Nobles, incómodos.",effect:{magos:16,nobles:-10,pueblo:8,ejercito:-3},willCost:6},
+    {text:"Enviar un representante en tu nombre.",sub:"El Gremio lo acepta pero entiende el mensaje: no son prioridad.",effect:{magos:-5,nobles:5,pueblo:3},willCost:3},
+    {text:"Rechazarlo. El rey no legitima poderes paralelos con su presencia.",sub:"El Gremio, ofendido. Pero el rey mantiene distancia de sus redes.",effect:{magos:-14,nobles:10,ejercito:5,pueblo:5},willCost:7}
+  ]},
+  {tag:'Tensión',desc:"Un teatro popular estrena una obra que ridiculiza abiertamente al Ejército. El Alto Mando exige que se clausure.",options:[
+    {text:"Clausurar el teatro. Las instituciones del reino no son material de burla.",sub:"El Ejército satisfecho. El Pueblo pierde una válvula de escape.",effect:{ejercito:12,pueblo:-16,nobles:-3},willCost:8},
+    {text:"Proteger la obra. El arte es libre.",sub:"El Pueblo ama al rey. El Ejército registra la afrenta.",effect:{pueblo:18,ejercito:-14,magos:5},willCost:7},
+    {text:"Exigir que se modifiquen las escenas más ofensivas.",sub:"El teatro continúa. Nadie queda del todo satisfecho.",effect:{pueblo:5,ejercito:-5,nobles:3},willCost:4}
+  ]},
+  {tag:'Petición',desc:"Varios comerciantes piden al rey que establezca una banca real que preste dinero sin los intereses abusivos de los prestamistas nobles.",options:[
+    {text:"Crear la banca real.",sub:"El Pueblo y los comerciantes celebran. Los Nobles pierden una de sus fuentes de poder.",effect:{pueblo:20,nobles:-18,magos:-3,ejercito:5},willCost:13},
+    {text:"Rechazarlo. La banca es asunto privado.",sub:"Los Nobles mantienen su dominio financiero. El Pueblo sigue endeudado.",effect:{nobles:14,pueblo:-14,ejercito:3},willCost:5},
+    {text:"Regular los intereses de los prestamistas sin crear banca real.",sub:"Un alivio parcial. Los Nobles pierden margen. El Pueblo gana algo.",effect:{nobles:-8,pueblo:12,ejercito:3,magos:3},willCost:7}
+  ]},
+  {tag:'Crisis',desc:"Una sequía prolongada amenaza con destruir la cosecha del año. El Gremio de Magos ofrece hacer llover... por un precio.",options:[
+    {text:"Pagar el precio del Gremio. El hambre es el peor de los males.",sub:"Llueve. El Gremio tiene un precedente de dependencia que explotará.",effect:{pueblo:18,magos:20,nobles:-8,ejercito:-5},willCost:11},
+    {text:"Rechazar. Buscar soluciones en los sistemas de riego.",sub:"El proceso es lento. Parte de la cosecha se pierde. El Pueblo sufre.",effect:{pueblo:-10,magos:-12,nobles:5,ejercito:8},willCost:9},
+    {text:"Negociar un precio menor. La sequía es también su problema.",sub:"Los Magos aceptan, molestos. Llueve menos de lo necesario.",effect:{pueblo:8,magos:5,nobles:-3,ejercito:3},willCost:6}
+  ]},
+  {tag:'Arbitraje',desc:"El Gremio y el Ejército pelean por el control de la muralla norte, que tiene ventanas hacia los laboratorios arcanos y los cuarteles a la vez.",options:[
+    {text:"Asignársela al Ejército. La muralla es defensa, no investigación.",sub:"El Ejército controla la vista a los laboratorios. Los Magos, vigilados.",effect:{ejercito:15,magos:-16,pueblo:5},willCost:9},
+    {text:"Asignársela al Gremio. Sus laboratorios llevan allí más tiempo.",sub:"Los Magos protegen su privacidad. El Ejército pierde posición estratégica.",effect:{magos:14,ejercito:-14,nobles:5},willCost:8},
+    {text:"Dividirla en zonas. Cada uno controla su sector.",sub:"Tensión constante en la frontera de la muralla, pero sin crisis abierta.",effect:{magos:-3,ejercito:-3,nobles:8,pueblo:5},willCost:4}
+  ]},
+  {tag:'Conspiración',desc:"Tu maestro de armas te revela que el Ejército ha estado entrenando en secreto a soldados con técnicas de magia prohibida.",options:[
+    {text:"Exigir al Ejército que lo detenga de inmediato.",sub:"El Ejército acata. El Gremio queda satisfecho con el gesto del rey.",effect:{ejercito:-12,magos:15,nobles:5,pueblo:3},willCost:10},
+    {text:"Ignorarlo. Un Ejército fuerte beneficia la estabilidad del trono.",sub:"El Ejército avanza en capacidades. El Gremio tarde o temprano lo descubrirá.",effect:{ejercito:16,magos:-5,nobles:-3,pueblo:-3},willCost:5},
+    {text:"Usarlo como palanca: negociar con el Ejército condiciones de lealtad.",sub:"El Ejército acepta condiciones. El rey tiene su secreto como garantía.",effect:{ejercito:5,magos:-5,nobles:8,pueblo:5},willCost:7}
+  ]},
+  {tag:'Intriga',desc:"Una anciana se presenta ante el trono afirmando ser la madre biológica del rey. No tienes documentos que la desmientan.",options:[
+    {text:"Reconocerla públicamente. Sea cierto o no, desestabiliza menos aceptar.",sub:"La historia se extiende. Los Nobles la usan para cuestionar la legitimidad del trono.",effect:{nobles:-15,pueblo:10,magos:-5,ejercito:-5},willCost:13},
+    {text:"Rechazarla en privado y ofrecerle una pensión para que guarde silencio.",sub:"La anciana acepta. El secreto tiene un coste mensual.",effect:{nobles:5,pueblo:-5,magos:5},willCost:8},
+    {text:"Abrir una investigación genealógica pública.",sub:"La investigación dura meses. Mientras tanto, todos especulan.",effect:{nobles:-8,pueblo:-5,magos:8,ejercito:5},willCost:10}
+  ]},
+  {tag:'Demanda',desc:"El Ejército exige que los Magos les entreguen el mapa de todos los pasajes secretos bajo la ciudad que el Gremio ha cartografiado.",options:[
+    {text:"Ordenar al Gremio que entregue los mapas.",sub:"El Ejército gana ventaja táctica enorme. Los Magos, furiosos por la invasión de su conocimiento.",effect:{ejercito:18,magos:-20,nobles:5},willCost:10},
+    {text:"Proteger al Gremio. Sus mapas son secreto profesional.",sub:"Los Magos agradecen la protección. El Ejército ve que no tiene al rey de su lado.",effect:{magos:15,ejercito:-15,nobles:5,pueblo:3},willCost:8},
+    {text:"Crear copias parciales bajo custodia real. Nadie tiene el original completo.",sub:"Una solución salomónica que deja a ambos frustrados.",effect:{magos:-5,ejercito:-5,nobles:12,pueblo:3},willCost:6}
+  ]},
+  {tag:'Conflicto',desc:"Un noble ha desheredado a su hijo mayor para dejar su fortuna a la Iglesia. El hijo reclama ante el rey.",options:[
+    {text:"Respetar la voluntad del noble. La propiedad privada es sagrada.",sub:"El hijo queda sin herencia. La Iglesia gana poder económico.",effect:{nobles:12,pueblo:-8,magos:-5,ejercito:3},willCost:6},
+    {text:"Anular el testamento. La línea familiar está por encima de la devoción.",sub:"El hijo hereda. La Iglesia pierde. Los Nobles se sienten más seguros de su linaje.",effect:{nobles:8,pueblo:5,magos:-8,ejercito:3},willCost:9},
+    {text:"Dividir: el hijo recibe la mitad, la Iglesia la otra.",sub:"Nadie queda completamente satisfecho, pero el conflicto cierra.",effect:{nobles:-3,pueblo:8,magos:3},willCost:4}
+  ]},
+  {tag:'Tensión',desc:"Los Magos han empezado a ofrecer servicios de curación mágica gratuita en los barrios pobres. El Ejército lo ve como captación de lealtades.",options:[
+    {text:"Prohibir los servicios de curación fuera de las instalaciones del Gremio.",sub:"El Pueblo pierde un beneficio real. El Ejército gana tranquilidad estratégica.",effect:{pueblo:-16,ejercito:12,magos:-14},willCost:10},
+    {text:"Dejarles continuar. El Pueblo necesita esa ayuda.",sub:"El Pueblo ama al Gremio. El Ejército nota que compiten por la lealtad popular.",effect:{pueblo:18,magos:14,ejercito:-10},willCost:5},
+    {text:"Intervenir: crear un sistema estatal que regule y absorba la curación.",sub:"La corona se queda el mérito. El Gremio pierde la iniciativa.",effect:{pueblo:10,magos:-8,nobles:8,ejercito:3},willCost:8}
+  ]},
+  {tag:'Petición',desc:"Un grupo de veteranos del Ejército exige tierras como compensación por sus años de servicio. El Ejército apoya la demanda.",options:[
+    {text:"Conceder tierras confiscadas a nobles sin herederos.",sub:"Los veteranos obtienen su tierra. Los Nobles ven que sus propiedades no son eternas.",effect:{ejercito:16,nobles:-14,pueblo:8},willCost:10},
+    {text:"Ofrecerles pensiones en lugar de tierras.",sub:"Los veteranos aceptan. El Ejército considera la pensión un insulto.",effect:{ejercito:-8,pueblo:5,nobles:5},willCost:7},
+    {text:"Crear colonias militares en tierras de la frontera.",sub:"Los veteranos van al margen del reino. El Ejército gana posiciones.",effect:{ejercito:12,nobles:5,pueblo:-5,magos:-3},willCost:6}
+  ]},
+  {tag:'Intriga',desc:"El Archimago y el general en jefe han sido vistos cenando juntos en privado tres noches seguidas. Ninguno te lo ha comunicado.",options:[
+    {text:"Convocarlos juntos y preguntarles directamente.",sub:"Ambos quedan expuestos. Insisten en que era una cena social. La tensión es palpable.",effect:{ejercito:-8,magos:-8,nobles:10,pueblo:5},willCost:9},
+    {text:"No hacer nada. Observar durante semanas más antes de actuar.",sub:"La relación entre ellos se profundiza. Tus agentes siguen sus movimientos.",effect:{ejercito:-3,magos:-3,nobles:8},willCost:4},
+    {text:"Enviarles una carta recordándoles que el rey siempre sabe.",sub:"El mensaje es claro. Ambos reducen la frecuencia de sus encuentros.",effect:{ejercito:5,magos:5,nobles:5,pueblo:3},willCost:5}
+  ]},
+  {tag:'Crisis',desc:"Un grupo de mercenarios extranjeros contratados por nobles realiza desmanes en la ciudad. El Ejército exige expulsarlos. Los Nobles los defienden.",options:[
+    {text:"Expulsar a los mercenarios. La ley es igual para todos.",sub:"El Ejército queda satisfecho. Los Nobles pierden su guardia extranjera.",effect:{ejercito:16,nobles:-18,pueblo:15},willCost:12},
+    {text:"Dejar que los Nobles los gestionen. Son su responsabilidad.",sub:"Los desmanes continúan. El Pueblo pierde confianza en el rey.",effect:{nobles:10,pueblo:-18,ejercito:-8},willCost:3},
+    {text:"Integrarlos en la guardia real bajo disciplina militar.",sub:"El Ejército gana tropas. Los Nobles pierden su ventaja privada.",effect:{ejercito:10,nobles:-8,pueblo:8},willCost:7}
+  ]},
+  {tag:'Arbitraje',desc:"Dos casas nobles solicitan ambas el mismo título de 'Administrador del Puerto'. Solo uno puede tenerlo. Sus flotas son casi iguales.",options:[
+    {text:"Darlo a la casa con mayor respaldo popular.",sub:"El Pueblo celebra la decisión. La casa perdedora no lo olvida.",effect:{pueblo:12,nobles:-5,ejercito:5},willCost:6},
+    {text:"Darlo a la casa con mayor respaldo militar.",sub:"El Ejército queda satisfecho. El Pueblo sospecha de las razones.",effect:{ejercito:12,nobles:-5,pueblo:-8},willCost:7},
+    {text:"Dividir la administración del puerto en dos turnos anuales.",sub:"Una solución ineficiente pero que evita el conflicto directo.",effect:{nobles:5,pueblo:5,ejercito:-3,magos:3},willCost:4}
+  ]},
+  {tag:'Demanda',desc:"Los Nobles exigen que el rey establezca un consejo de regencia para cuando el monarca esté enfermo o ausente, con ellos como integrantes naturales.",options:[
+    {text:"Rechazarlo. El rey gobierna siempre, con salud o sin ella.",sub:"Los Nobles quedan frustrados. El rey demuestra que no tolerará vacíos de poder.",effect:{nobles:-16,ejercito:8,pueblo:8,magos:5},willCost:10},
+    {text:"Crearlo con representación equilibrada de todas las facciones.",sub:"El consejo queda establecido. Los Nobles ganan estructura institucional.",effect:{nobles:14,magos:8,ejercito:5,pueblo:-5},willCost:8},
+    {text:"Crearlo pero con poder meramente consultivo.",sub:"Los Nobles aceptan el gesto pero saben que es simbólico.",effect:{nobles:6,magos:3,ejercito:3,pueblo:5},willCost:4}
+  ]},
+  {tag:'Conspiración',desc:"Descubres que el Pueblo ha estado recibiendo panfletos anónimos que describen en detalle cómo funciona el sistema de arbitraje del rey. Alguien lo explica desde dentro.",options:[
+    {text:"Investigar quién filtra información desde palacio.",sub:"La investigación incomoda a todos los consejeros. Alguien está siendo vigilado.",effect:{nobles:-10,magos:-10,ejercito:-5,pueblo:5},willCost:9},
+    {text:"Ignorarlo. La transparencia involuntaria no es necesariamente un problema.",sub:"Los panfletos siguen. El Pueblo aprende a leer el sistema. El rey pierde misterio.",effect:{pueblo:10,nobles:-5,magos:-8,ejercito:-5},willCost:3},
+    {text:"Publicar tú mismo documentos explicativos. Controlar la narrativa.",sub:"El rey se adelanta al filtrador. El Pueblo ve proactividad.",effect:{pueblo:15,nobles:5,magos:-5,ejercito:3},willCost:7}
+  ]},
+  {tag:'Tensión',desc:"El Gremio de Magos ha instalado un observatorio arcano en la cima de la torre más alta de la ciudad sin pedir permiso.",options:[
+    {text:"Exigir su demolición. Nadie construye en altura real sin permiso.",sub:"El Gremio desmonta el observatorio. Queda una deuda de orgullo.",effect:{magos:-14,nobles:10,ejercito:8,pueblo:3},willCost:8},
+    {text:"Legalizarlo a posteriori. No vale la pena el conflicto.",sub:"El Gremio normaliza que puede pedir perdón en lugar de permiso.",effect:{magos:12,nobles:-8,ejercito:-5,pueblo:5},willCost:4},
+    {text:"Multarlos y dejar el observatorio. El coste económico como mensaje.",sub:"El Gremio paga. El observatorio se queda. El mensaje es ambiguo.",effect:{magos:-3,nobles:5,ejercito:5,pueblo:5},willCost:5}
+  ]},
+  {tag:'Voluntad',desc:"El rey sueña que abdica y nadie en la ciudad lo nota. Al despertar, no está seguro de si fue una pesadilla o una revelación.",options:[
+    {text:"Convocar corte abierta. Recordarle a todos que el rey existe y decide.",sub:"Tu presencia renueva la tensión política. El sistema te recuerda que te necesita.",effect:{ejercito:5,nobles:5,magos:5,pueblo:5},willCost:-12},
+    {text:"Escribir en el diario real. Procesar el miedo en palabras privadas.",sub:"Nadie lo sabe. Pero tú sí sabes lo que el sueño revela.",effect:{},willCost:-6},
+    {text:"Preguntarle al Archimago si los sueños del rey tienen significado.",sub:"El Archimago ve una oportunidad. El sueño se convierte en su herramienta.",effect:{magos:10,ejercito:-5,nobles:-5},willCost:5}
+  ]},
+  {tag:'Petición',desc:"Los pescadores del río solicitan que el Ejército retire las redes de control que interceptan sus barcas en nombre de la seguridad.",options:[
+    {text:"Retirar las redes. La pesca es el sustento del Pueblo.",sub:"Los pescadores celebran. El Ejército pierde un control fronterizo.",effect:{pueblo:16,ejercito:-12,nobles:3},willCost:7},
+    {text:"Mantenerlas. La seguridad del río no es negociable.",sub:"El Ejército queda satisfecho. Los pescadores se empobrecen lentamente.",effect:{ejercito:10,pueblo:-14,nobles:3},willCost:5},
+    {text:"Crear ventanas horarias en las que las redes no están activas.",sub:"Una solución práctica que a nadie deja del todo contento.",effect:{ejercito:3,pueblo:8,nobles:3},willCost:3}
+  ]},
+  {tag:'Conflicto',desc:"Un magistrado real ha sido sobornado por un noble. El Ejército lo ha descubierto y exige que el rey actúe con dureza.",options:[
+    {text:"Procesar al magistrado y al noble por igual. La ley es igual.",sub:"El Ejército queda satisfecho. Los Nobles temen que el rey no proteja a los suyos.",effect:{ejercito:15,nobles:-16,pueblo:15},willCost:12},
+    {text:"Procesar solo al magistrado. El noble tiene inmunidad señorial.",sub:"El magistrado paga. El noble aprende que puede comprar voluntades.",effect:{ejercito:5,nobles:8,pueblo:-10},willCost:7},
+    {text:"Resolver en privado, sin escándalo. Retirar al magistrado con discreción.",sub:"El asunto se cierra. El noble queda sin consecuencias reales. El Ejército, frustrado.",effect:{ejercito:-8,nobles:5,pueblo:-5,magos:3},willCost:5}
+  ]}
+];
+
+// ═══════════════════════════════════
+//  KING THOUGHTS
+// ═══════════════════════════════════
+const thoughts={
+  high:["Hoy el trono pesa un poco menos.","Arbitrar no es gobernar. Pero funciona.","El sistema me necesita. Por ahora, eso es suficiente.","Decido. No ordeno. Nunca he ordenado.","El candado de esta jaula que todos habitan soy yo."],
+  mid:["Noto que alguno me vigila más de lo habitual.","Hay silencio donde debería haber voces. Eso me preocupa.","No confío en ninguno. Todos lo saben. Nadie actúa todavía.","El sistema me tiene. Yo no tengo al sistema.","Un equilibrio siempre cede primero por algún lado."],
+  low:["Siento que algo se quiebra. Lo noto en los huesos.","Alguien ha dejado de tener miedo esta semana.","El trono nunca ha estado tan frío.","Pronto alguien decidirá que ya no me necesitan.","Cuando un equilibrio cede... cede todo junto."]
+};
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+
+// ═══════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════
+function statusText(v){
+  if(v>85)return{t:'Demasiado poderoso',warn:true};
+  if(v>65)return{t:'Leal por conveniencia',warn:false};
+  if(v>45)return{t:'Tolerancia tensa',warn:false};
+  if(v>25)return{t:'Descontento creciente',warn:true};
+  return{t:'Al borde de la traición',warn:true};
+}
+
+function stabilityScore(){
+  // 0-100 composite from all faction values (ideal=50)
+  const vals=Object.values(factions).map(f=>f.value);
+  const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
+  const dev=Math.sqrt(vals.reduce((a,v)=>a+(v-avg)**2,0)/vals.length);
+  return Math.max(0,Math.min(100,Math.round(100-dev)));
+}
+
+function toast(msg,dur=2400){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>el.classList.remove('show'),dur);
+}
+
+// ═══════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════
+function renderFactions(){
+  const el=document.getElementById('factions');
+  el.innerHTML='';
+  for(const[key,f]of Object.entries(factions)){
+    const v=f.value, s=statusText(v);
+    el.innerHTML+=`
+    <div class="faction-card" style="--fc:${f.color};margin-bottom:8px">
+      <div class="fc-top">
+        <div class="fc-left">
+          <div><span class="fc-emblem"></span><span class="fc-name">${f.label}</span></div>
+        </div>
+        <span class="fc-val${v<20||v>85?' danger':''}">${v}%</span>
+      </div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${v}%"></div></div>
+      <div class="fc-status${s.warn?' warn':''}">${s.t}</div>
+      <div class="fc-tip">
+        <span class="tip-lbl">Quiénes son</span>${f.desc}
+        <span class="tip-lbl">Qué quieren</span>${f.want}
+        <span class="tip-lbl">Sin el rey</span>${f.fear}
+      </div>
+    </div>`;
+  }
+}
+
+function renderWill(){
+  const pct=Math.max(0,Math.min(100,will));
+  document.getElementById('will-fill').style.width=pct+'%';
+  document.getElementById('will-val').textContent=pct;
+  const tEl=document.getElementById('will-thought');
+  if(pct>70){tEl.textContent='El peso del trono aún no aplasta.';tEl.style.color='#3a2828';}
+  else if(pct>40){tEl.textContent='La carga se hace notar en cada decisión.';tEl.style.color='#5a3030';}
+  else if(pct>15){tEl.textContent='El agotamiento del árbitro eterno filtra.';tEl.style.color='#8a3030';}
+  else{tEl.textContent='El rey se quiebra por dentro.';tEl.style.color='#aa4040';}
+  const eqEl=document.getElementById('eq-label');
+  if(pct>70)eqEl.textContent='INTACTA';
+  else if(pct>40)eqEl.textContent='EROSIONADA';
+  else if(pct>15)eqEl.textContent='FRÁGIL';
+  else eqEl.textContent='ROTA';
+}
+
+
+function renderOrb(){
+  const score=stabilityScore();
+  const circ=213,offset=circ-(circ*score/100);
+  const ring=document.getElementById('orb-ring');
+  ring.style.strokeDashoffset=offset;
+  let col,lbl;
+  if(score>70){col='#c9a84c';lbl='ESTABLE';}
+  else if(score>45){col='#c07820';lbl='TENSO';}
+  else if(score>25){col='#a03020';lbl='FRÁGIL';}
+  else{col='#801010';lbl='CRÍTICO';}
+  ring.style.stroke=col;
+  document.getElementById('orb-pct').textContent=score;
+  document.getElementById('orb-pct').style.color=col;
+  document.getElementById('orb-lbl').textContent=lbl;
+  document.getElementById('orb-lbl').style.color=col;
+}
+
+function renderMeta(){
+  document.getElementById('days').textContent=days;
+  document.getElementById('days2').textContent=days;
+  document.getElementById('decisions').textContent=decisions;
+
+  let danger=0;
+  for(const f of Object.values(factions))if(f.value<20||f.value>85)danger++;
+
+  const sEl=document.getElementById('king-status');
+  const thEl=document.getElementById('king-thought');
+  let pool;
+  if(danger>=2||will<20){sEl.textContent='QUEBRÁNDOSE';sEl.className='s-critical';pool=thoughts.low;}
+  else if(danger===1||will<50){sEl.textContent='ATORMENTADO';sEl.className='s-tormented';pool=thoughts.mid;}
+  else{sEl.textContent='MEDIANDO';sEl.className='s-stable';pool=thoughts.high;}
+  thEl.textContent=`"${pick(pool)}"`;
+}
+
+function addLog(text){
+  log.unshift({day:days,text});
+  if(log.length>6)log.pop();
+  document.getElementById('log-entries').innerHTML=
+    log.map((e,i)=>`<div class="log-entry${i===0?' fresh':''}">
+      <span class="log-day">Día ${e.day}</span><span>${e.text}</span>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════
+//  GAME OVER
+// ═══════════════════════════════════
+const endMsgs={
+  ejercito:{hi:"La Casa Alta Élfica ya no te necesita. Han instalado a un General-Rey. El sistema continúa sin ti.",lo:"El Ejército ha fracturado en facciones rivales. La guerra civil ha comenzado."},
+  pueblo:{hi:"Los gremios han declarado una república de facto. La corona ya no da miedo. Tú tampoco.",lo:"La revuelta popular quemó el palacio. El pueblo que toleraba al rey dejó de tolerarlo."},
+  nobles:{hi:"Las casas nobles han pactado: un Consejo de Señores es más eficiente que un rey amargo.",lo:"Las casas nobles se lanzaron a la guerra entre sí. La corona cayó en el caos."},
+  magos:{hi:"El Gremio ya no necesita marioneta. El Archimago ocupa el trono. La magia gobierna abiertamente.",lo:"El Gremio se rebeló en abierto. La magia sin árbitro no tiene freno."}
+};
+
+function checkEnd(){
+  if(will<=0)return{dead:true,type:'voluntad',name:'El Rey',msg:'El árbitro eterno se rindió. No por derrota, sino por agotamiento absoluto. Nadie lo derrocó — simplemente dejó de levantarse del trono cada mañana.'};
+  for(const[k,f]of Object.entries(factions)){
+    if(f.value>=100)return{dead:true,type:'irrelevancia',name:f.label,msg:endMsgs[k].hi};
+    if(f.value<=0)return{dead:true,type:'colapso',name:f.label,msg:endMsgs[k].lo};
+  }
+  return{dead:false};
+}
+
+function endGame(r){
+  document.getElementById('event-area').style.display='none';
+  const go=document.getElementById('game-over');
+  go.classList.add('on');
+  document.getElementById('go-title').textContent=
+    r.type==='voluntad'?'EL REY ABDICA':
+    r.type==='irrelevancia'?`${r.name.toUpperCase()} YA NO TE NECESITA`:
+    r.type==='traicion'?`TRAICIÓN DE ${r.name.toUpperCase()}`:
+    `COLAPSO — ${r.name.toUpperCase()}`;
+  document.getElementById('go-msg').textContent=r.msg;
+  document.getElementById('gs-days').textContent=days;
+  document.getElementById('gs-dec').textContent=decisions;
+}
+
+// ═══════════════════════════════════
+//  EVENT SYSTEM
+// ═══════════════════════════════════
+function nextEvent(){
+  if(usedIdx.length>=events.length)usedIdx=[];
+  const pool=events.map((_,i)=>i).filter(i=>!usedIdx.includes(i));
+  const idx=pick(pool);usedIdx.push(idx);
+  currentEvent=events[idx];
+
+  // Small will recovery between events (rest between decisions)
+  if(decisions>0){
+    const recovery=5;
+    will=Math.min(100,will+recovery);
+    renderWill();
+  }
+
+  const area=document.getElementById('event-area');
+  area.style.animation='none';void area.offsetHeight;area.style.animation='ev-in .5s ease';
+
+  const tagEl=document.getElementById('event-tag');
+  tagEl.textContent=currentEvent.tag;
+  tagEl.className='event-tag';
+  if(currentEvent.tag==='Crisis')tagEl.classList.add('crisis');
+  if(currentEvent.tag==='Conspiración')tagEl.classList.add('conspiracion');
+
+  document.getElementById('event-desc').textContent=currentEvent.desc;
+  document.getElementById('feedback').style.display='none';
+  document.getElementById('continue-btn').classList.remove('vis');
+
+  // Event image
+  const wrap=document.getElementById('event-img-wrap');
+  const img=document.getElementById('event-img');
+  if(currentEvent.img){
+    img.src=currentEvent.img;img.alt=currentEvent.tag;
+    wrap.style.display='';
+  } else {
+    wrap.style.display='none';
+  }
+
+  const c=document.getElementById('choices');c.innerHTML='';
+  currentEvent.options.forEach((opt,i)=>{
+    const btn=document.createElement('button');
+    btn.className='cbtn';
+    let tags='';
+    if(opt.willCost>10)tags+=`<span class="cbtn-tag costly">-${opt.willCost} voluntad</span>`;
+    btn.innerHTML=`${tags}${opt.text}<span class="cbtn-arrow">›</span>`;
+    btn.onclick=()=>applyEffect(opt,btn);
+    c.appendChild(btn);
+  });
+}
+
+function onContinue(){
+  document.getElementById('feedback').style.display='none';
+  document.getElementById('continue-btn').classList.remove('vis');
+  nextEvent();
+}
+
+function applyEffect(opt,btn){
+  if(btn.disabled)return;
+  document.querySelectorAll('.cbtn').forEach(b=>b.disabled=true);
+
+  days+=12+Math.floor(Math.random()*12);
+  decisions++;
+
+  const cost=opt.willCost||5;
+  const restore=opt.willRestore||0;
+  const willBefore=will;
+  will=Math.max(0,Math.min(100,will-cost+restore));
+  const willDelta=will-willBefore;
+
+  const factionDeltas={};
+  for(const[key,delta]of Object.entries(opt.effect||{})){
+    const before=factions[key].value;
+    factions[key].value=Math.min(100,Math.max(0,before+delta));
+    factionDeltas[key]=factions[key].value-before;
+  }
+
+  const label=opt.text.replace(/<[^>]*>/g,'').slice(0,62);
+  addLog(label);
+
+  // Build feedback: narrative + delta pills
+  const fb=document.getElementById('feedback');
+  let deltasHTML='';
+  // Will delta
+  if(willDelta!==0){
+    const cls=willDelta>0?'will-up':'will-down';
+    const sign=willDelta>0?'+':'';
+    deltasHTML+=`<span class="fb-delta ${cls}">Voluntad ${sign}${willDelta}</span>`;
+  }
+  // Faction deltas
+  for(const[key,delta]of Object.entries(factionDeltas)){
+    if(delta===0)continue;
+    const cls=delta>0?'up':'down';
+    const sign=delta>0?'+':'';
+    deltasHTML+=`<span class="fb-delta ${cls}">${factions[key].label} ${sign}${delta}%</span>`;
+  }
+  fb.innerHTML=`<div class="fb-narrative">${opt.sub}</div><div class="fb-deltas">${deltasHTML}</div>`;
+  fb.style.display='block';
+  document.getElementById('continue-btn').classList.add('vis');
+
+  renderFactions();renderWill();renderOrb();renderMeta();
+
+  const result=checkEnd();
+  if(result.dead){
+    document.getElementById('continue-btn').classList.remove('vis');
+    endGame(result);
+  }
+}
+
+// ═══════════════════════════════════
+//  INIT
+// ═══════════════════════════════════
+renderFactions();renderWill();renderOrb();renderMeta();nextEvent();
+</script>
+</body>
+</html>
